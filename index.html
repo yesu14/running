@@ -854,8 +854,6 @@ async function connectSB() {
       global: { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } },
       auth: { persistSession: false, autoRefreshToken: false }
     });
-    localStorage.setItem('sb_url', url);
-    localStorage.setItem('sb_key', key);
     toast('Supabase 연결됨! ☁️');
     await loadSettings();
     showScreen('home');
@@ -865,10 +863,8 @@ async function connectSB() {
   }
 }
 function skipSetup() {
-  localStorage.removeItem('sb_url');
-  localStorage.removeItem('sb_key');
   SB = null;
-  loadSettings().then(() => showScreen('home'));
+  showScreen('home');
 }
 
 // ===================== DB Abstraction =====================
@@ -922,11 +918,13 @@ async function saveRun(rec) {
   if (SB) {
     const p = {date:rec.date, course:rec.course||'', laps:rec.laps, ts: Date.now()};
     if (rec._sbid) {
-      await SB.from('fitness_runs').update(p).eq('id', rec._sbid);
+      const {error} = await SB.from('fitness_runs').update(p).eq('id', rec._sbid);
+      if (error) { console.error('saveRun update:', error); toast('저장 오류: '+error.message); }
       return rec._sbid;
     } else {
       const {data, error} = await SB.from('fitness_runs').insert(p).select().single();
-      if (error) throw error;
+      if (error) { console.error('saveRun insert:', error); toast('저장 오류: '+error.message); throw error; }
+      console.log('✅ 달리기 저장:', data.id);
       return data.id;
     }
   }
@@ -940,11 +938,13 @@ async function saveJump(rec) {
   if (SB) {
     const p = {date:rec.date, char_id:rec.charId, rounds: JSON.stringify(rec.rounds||[]), updated_at: Date.now()};
     if (rec._sbid) {
-      await SB.from('fitness_jumps').update(p).eq('id', rec._sbid);
+      const {error} = await SB.from('fitness_jumps').update(p).eq('id', rec._sbid);
+      if (error) { console.error('saveJump update:', error); toast('저장 오류: '+error.message); }
       return rec._sbid;
     } else {
       const {data, error} = await SB.from('fitness_jumps').insert(p).select().single();
-      if (error) throw error;
+      if (error) { console.error('saveJump insert:', error); toast('저장 오류: '+error.message); throw error; }
+      console.log('✅ 줄넘기 저장:', data.id);
       return data.id;
     }
   }
@@ -966,6 +966,7 @@ async function clearAll() {
   if (SB) {
     await SB.from('fitness_runs').delete().gt('id', 0);
     await SB.from('fitness_jumps').delete().gt('id', 0);
+    // settings는 삭제하지 않음 (코스/캐릭터 정보 유지)
     return;
   }
   if (_idb) { await idbClear('runs'); await idbClear('jumps'); }
@@ -1008,34 +1009,51 @@ const fmtF  = d => {
   return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`;
 };
 
+// ── Settings: Supabase 전용, 로컬 저장 없음 ──
+const migrateCourses = arr => {
+  if (!Array.isArray(arr)) return S.courses;
+  return arr.map(c => typeof c === 'string' ? {name:c, meter:0} : {name:c.name||'', meter:c.meter||0});
+};
+
 async function saveSettings() {
-  const d = {key:'app', courses:S.courses, characters:S.characters};
-  try { localStorage.setItem('fSettings', JSON.stringify(d)); } catch(e){}
-  try { if (_idb) await idbPut('settings', d); } catch(e){}
-}
-async function loadSettings() {
-  const migrateCourses = arr => {
-    if (!Array.isArray(arr)) return S.courses;
-    return arr.map(c => typeof c === 'string' ? {name:c, meter:0} : {name:c.name||c, meter:c.meter||0});
-  };
+  if (!SB) { console.warn('saveSettings: SB 없음'); return; }
+  const val = JSON.stringify({courses: S.courses, characters: S.characters});
   try {
-    const ls = localStorage.getItem('fSettings');
-    if (ls) {
-      const s = JSON.parse(ls);
-      if (s.courses) S.courses = migrateCourses(s.courses);
-      if (s.characters) S.characters = s.characters.map(c=>({hidden:false,...c}));
+    const {error} = await SB.from('fitness_settings')
+      .upsert({key: 'app', value: val}, {onConflict: 'key'});
+    if (error) {
+      console.error('saveSettings 오류:', error);
+      toast('설정 저장 실패: ' + (error.message||error.code));
+    } else {
+      console.log('✅ 설정 저장됨');
+    }
+  } catch(e) {
+    console.error('saveSettings 예외:', e);
+    toast('설정 저장 오류: ' + e.message);
+  }
+}
+
+async function loadSettings() {
+  if (!SB) { console.warn('loadSettings: SB 없음'); return; }
+  try {
+    const {data, error} = await SB.from('fitness_settings')
+      .select('value').eq('key', 'app').single();
+    if (error) {
+      // PGRST116 = row not found → 첫 사용, 기본값 유지
+      if (error.code === 'PGRST116') {
+        console.log('설정 없음 → 기본값 사용');
+        return;
+      }
+      console.error('loadSettings 오류:', error);
+      toast('설정 로드 실패: ' + (error.message||error.code));
       return;
     }
-  } catch(e){}
-  try {
-    if (_idb) {
-      const s = await idbGet('settings','app');
-      if (s) {
-        if (s.courses) S.courses = migrateCourses(s.courses);
-        if (s.characters) S.characters = s.characters.map(c=>({hidden:false,...c}));
-      }
-    }
-  } catch(e){}
+    if (!data) return;
+    const s = JSON.parse(data.value);
+    if (s.courses)    S.courses    = migrateCourses(s.courses);
+    if (s.characters) S.characters = s.characters.map(c=>({hidden:false,...c}));
+    console.log('✅ 설정 로드:', s.courses?.length, '코스,', s.characters?.length, '캐릭터');
+  } catch(e) { console.error('loadSettings 예외:', e); }
 }
 
 // ===================== Screen Nav =====================
@@ -1970,31 +1988,38 @@ async function refreshCharts(){await renderRC();await renderJC();}
 
 // ===================== Init =====================
 async function init() {
-  await openIDB();
-  await loadSettings();
-
+  // 1. 날짜 입력 기본값 세팅
   const t=today(), wa=new Date(); wa.setDate(wa.getDate()-6);
   const waStr = wa.toISOString().slice(0,10);
   ['rds','jds'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=waStr;});
   ['rde','jde'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t;});
 
-  // Auto-connect: 저장된 키 > 기본 키 순서로 시도, 설정화면 없이 바로 홈으로
-  const url = localStorage.getItem('sb_url') || DEFAULT_SB_URL;
-  const key = localStorage.getItem('sb_key') || DEFAULT_SB_KEY;
-  try { document.getElementById('sb-url').value = url; } catch(e){}
-  try { document.getElementById('sb-key').value = key; } catch(e){}
+  // 2. Supabase 스크립트 로드
   const sbOk = await loadSBScript();
-  if (sbOk) {
-    try {
-      SB = window.supabase.createClient(url, key, {
-        global: { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } },
-        auth: { persistSession: false, autoRefreshToken: false }
-      });
-      localStorage.setItem('sb_url', url);
-      localStorage.setItem('sb_key', key);
-    } catch(e) { SB = null; }
+  if (!sbOk) {
+    toast('인터넷 연결을 확인해주세요');
+    showScreen('home');
+    return;
   }
-  // 성공/실패 모두 설정화면 없이 바로 홈으로
+
+  // 3. Supabase 클라이언트 생성
+  try {
+    SB = window.supabase.createClient(DEFAULT_SB_URL, DEFAULT_SB_KEY, {
+      global: { headers: { 'apikey': DEFAULT_SB_KEY, 'Authorization': 'Bearer ' + DEFAULT_SB_KEY } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+    console.log('✅ Supabase 연결됨');
+  } catch(e) {
+    console.error('Supabase 연결 실패:', e);
+    SB = null;
+    showScreen('home');
+    return;
+  }
+
+  // 4. DB에서 설정(코스/캐릭터) 로드 — SB가 준비된 후에 실행
+  await loadSettings();
+  console.log('✅ 설정 로드 완료:', S.courses.length, '개 코스,', S.characters.length, '개 캐릭터');
+
   showScreen('home');
 }
 
@@ -2003,13 +2028,14 @@ init().then(()=>{ applyPageLogos(); });
 // 앱이 백그라운드에서 포그라운드로 올 때 데이터 재동기화
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
+    // 포그라운드 복귀 시 설정(코스/캐릭터)도 재동기화
+    loadSettings().catch(()=>{});
     const active = document.querySelector('.screen.active');
     if (!active) return;
     const id = active.id;
     if (id === 'screen-run' && S.selCourse) {
       initRun().catch(()=>{});
     } else if (id === 'screen-jump') {
-      // 오늘 캐시 삭제 후 재로드
       const t = today();
       Object.keys(S.jCache).filter(k=>k.startsWith(t+'-')).forEach(k=>delete S.jCache[k]);
       renderJumpScreen().catch(()=>{});
