@@ -173,9 +173,9 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);max-width:430px
 .jtable tbody tr{border-bottom:1px solid var(--brd)}
 .jtable tbody tr:last-child{border-bottom:none}
 .rn-cell{font-size:.9rem;color:var(--dim);text-align:center;border-right:2px solid var(--brd);padding:6px 4px;width:36px;background:var(--sur)}
-.val-td{padding:4px 5px;border-right:1px solid var(--brd);background:var(--bg)}
+.val-td{padding:2px 3px;border-right:1px solid var(--brd);background:var(--bg)}
 .val-td:last-child{border-right:none}
-.prev-h{font-size:.72rem;color:var(--dim);opacity:.7;text-align:center;display:block;line-height:1.2;min-height:14px}
+.prev-h{display:none}/* 이전기록은 이제 입력란 왼쪽에 inline으로 표시 */
 .jinp{background:transparent;border:none;color:var(--txt);font-size:1.3rem;font-family:var(--fT);text-align:center;padding:7px 4px;width:100%;outline:none;-webkit-appearance:none;display:block;letter-spacing:.02em}
 .jinp:focus{background:rgba(0,229,255,.08);border-radius:8px}
 .jinp.zv{color:var(--sur3)}
@@ -1328,17 +1328,23 @@ async function buildJumpTable() {
       const key = t + '-' + c.id;
       const v   = S.jCache[key] ? (S.jCache[key].rounds[i] || 0) : 0;
       const pr  = prevMap[c.id];
-      const prevStr = (pr && pr[i]) ? pr[i] : '';
-      tbHtml += `<td class="val-td">
-        <span class="prev-h">${prevStr}</span>
-        <input class="jinp ${v===0?'zv':'hv'}"
-          id="ji-${c.id}-${i}"
-          type="number" min="0"
-          value="${v}"
-          inputmode="numeric"
-          onfocus="jFocus(this)"
-          oninput="jInput('${c.id}',${i},this.value)"
-          onblur="jBlur(this,'${c.id}',${i})">
+      // 이전 기록을 입력란 왼쪽에 작게 배치
+      const prevStr = (pr && pr[i])
+        ? `<span style="font-size:.68rem;color:var(--dim);opacity:.6;margin-right:3px;flex-shrink:0;min-width:18px;text-align:right">${pr[i]}</span>`
+        : `<span style="min-width:18px;display:inline-block"></span>`;
+      tbHtml += `<td class="val-td" style="padding:2px 3px">
+        <div style="display:flex;align-items:center;gap:0">
+          ${prevStr}
+          <input class="jinp ${v===0?'zv':'hv'}"
+            id="ji-${c.id}-${i}"
+            type="number" min="0"
+            value="${v}"
+            inputmode="numeric"
+            onfocus="jFocus(this)"
+            oninput="jInput('${c.id}',${i},this.value)"
+            onblur="jBlur(this,'${c.id}',${i})"
+            style="flex:1;min-width:0">
+        </div>
       </td>`;
     }
     tbHtml += '</tr>';
@@ -1609,13 +1615,16 @@ async function loadEditData() {
     for (const [cid,r] of Object.entries(byChar)) {
       const c = S.characters.find(x=>x.id===cid);
       const tot = safeRounds(r.rounds).reduce((a,b)=>a+b,0);
+      // rounds 배열을 window 캐시에 저장 후 id로만 참조 (onclick 속성 파싱 오류 방지)
+      if (!window._editJumpRecs) window._editJumpRecs = {};
+      window._editJumpRecs[r.id] = {id:r.id, date, charId:cid, rounds:safeRounds(r.rounds)};
       html += `<div class="ed-row">
         <div class="ed-badge jmp">줄넘기</div>
         <div class="ed-info"><div class="ed-sub">${c?c.name:cid}</div></div>
         <div class="ed-val j">${tot}<span style="font-size:.7rem;color:var(--dim);font-family:var(--fB)">개</span></div>
         <div class="ed-acts">
-          <button class="edbtn" onclick="editJumpRec(${JSON.stringify(r.id)},${JSON.stringify(date)},${JSON.stringify(cid)},${JSON.stringify(safeRounds(r.rounds))})">✏️</button>
-          <button class="edbtn del" onclick="delJumpRec(${JSON.stringify(r.id)},${JSON.stringify(cid)})">🗑</button>
+          <button class="edbtn" onclick="editJumpRecById(${r.id})">✏️</button>
+          <button class="edbtn del" onclick="delJumpRecById(${r.id})">🗑</button>
         </div>
       </div>`;
     }
@@ -1659,10 +1668,15 @@ function editJumpRec(id, date, charId, rounds) {
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok-o',fn:async()=>{
       const nr=rounds.map((_,i)=>parseInt(document.getElementById(`jre-${i}`)?.value)||0);
       await saveJump({date,charId,rounds:nr, _idbid:SB?null:id, _sbid:SB?id:null});
-      // clear cache
       delete S.jCache[date+'-'+charId];
       loadEditData(); closeModal(null); toast('수정됨!');
     }}]);
+}
+// id로만 참조하는 래퍼 (onclick 속성 파싱 오류 방지)
+function editJumpRecById(id) {
+  const rec = window._editJumpRecs && window._editJumpRecs[id];
+  if (!rec) { toast('기록을 찾을 수 없어요'); return; }
+  editJumpRec(rec.id, rec.date, rec.charId, rec.rounds);
 }
 async function delJumpRec(id, charId) {
   openModal('삭제',`<p style="color:var(--dim);margin-bottom:14px">이 기록을 삭제할까요?</p>`,
@@ -1670,6 +1684,11 @@ async function delJumpRec(id, charId) {
       await deleteJump(id).catch(()=>{});
       loadEditData(); closeModal(null); toast('삭제됨');
     }}]);
+}
+function delJumpRecById(id) {
+  const rec = window._editJumpRecs && window._editJumpRecs[id];
+  const charId = rec ? rec.charId : null;
+  delJumpRec(id, charId);
 }
 
 function showAddRecord() {
