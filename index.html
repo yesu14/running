@@ -331,10 +331,50 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
   <!-- top bar: logo left, menu right -->
   <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;flex-shrink:0">
     <div class="home-logo-small" onclick="showScreen('charts')" style="cursor:pointer">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <circle cx="16" cy="16" r="16" fill="url(#hg1)"/>
-        <defs><radialGradient id="hg1" cx="40%" cy="35%"><stop offset="0%" stop-color="#00e5ff" stop-opacity=".9"/><stop offset="100%" stop-color="#0066cc" stop-opacity=".7"/></radialGradient></defs>
-        <text x="16" y="21" text-anchor="middle" font-size="16" fill="white">⚡</text>
+      <svg width="40" height="36" viewBox="0 0 40 36" fill="none" style="filter:drop-shadow(0 0 7px rgba(0,229,255,.7)) drop-shadow(0 0 18px rgba(0,229,255,.3))">
+        <defs>
+          <linearGradient id="hbg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#00e5ff" stop-opacity="0"/>
+            <stop offset="40%" stop-color="#00e5ff" stop-opacity=".9"/>
+            <stop offset="100%" stop-color="#7df9ff" stop-opacity="1"/>
+          </linearGradient>
+          <!-- 클리핑: 오른쪽으로 흘러가는 효과 -->
+          <clipPath id="hclip">
+            <rect x="0" y="0" width="40" height="36"/>
+          </clipPath>
+        </defs>
+        <!-- 배경 미세 격자선 -->
+        <line x1="0" y1="18" x2="40" y2="18" stroke="rgba(0,229,255,.1)" stroke-width="1"/>
+        <line x1="0" y1="9"  x2="40" y2="9"  stroke="rgba(0,229,255,.07)" stroke-width=".5"/>
+        <line x1="0" y1="27" x2="40" y2="27" stroke="rgba(0,229,255,.07)" stroke-width=".5"/>
+        <!-- 심박수 파형 — 전체 경로 두 벌 이어붙여 무한 슬라이드 -->
+        <g clip-path="url(#hclip)">
+          <!-- 파형 본체 (2x width for seamless loop) -->
+          <polyline
+            points="0,18 5,18 7,18 9,6 11,28 13,14 15,18 20,18 22,18 24,8 26,26 28,16 30,18 35,18 37,18 39,6 41,28 43,14 45,18 50,18 52,18 54,8 56,26 58,16 60,18 65,18 67,18 69,6 71,28 73,14 75,18 80,18"
+            stroke="url(#hbg)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <!-- 왼쪽으로 흘러가는 translateX 애니메이션 -->
+            <animateTransform attributeName="transform" type="translate"
+              values="0,0;-40,0" dur="1.6s" repeatCount="indefinite"/>
+          </polyline>
+          <!-- 글로우 레이어 (두꺼운 반투명) -->
+          <polyline
+            points="0,18 5,18 7,18 9,6 11,28 13,14 15,18 20,18 22,18 24,8 26,26 28,16 30,18 35,18 37,18 39,6 41,28 43,14 45,18 50,18 52,18 54,8 56,26 58,16 60,18 65,18 67,18 69,6 71,28 73,14 75,18 80,18"
+            stroke="#00e5ff" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".18">
+            <animateTransform attributeName="transform" type="translate"
+              values="0,0;-40,0" dur="1.6s" repeatCount="indefinite"/>
+          </polyline>
+        </g>
+        <!-- 맨 오른쪽 살아있는 점 (깜빡임) -->
+        <circle cx="35" cy="18" r="2.4" fill="#00e5ff">
+          <animate attributeName="opacity" values="1;0.2;1" dur=".8s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="2.4;3.6;2.4" dur=".8s" repeatCount="indefinite"/>
+        </circle>
+        <!-- 점 주변 외곽 링 -->
+        <circle cx="35" cy="18" r="5" fill="none" stroke="#00e5ff" stroke-width="1" opacity=".3">
+          <animate attributeName="opacity" values=".3;0;.3" dur=".8s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="4;7;4" dur=".8s" repeatCount="indefinite"/>
+        </circle>
       </svg>
     </div>
     <div onclick="showScreen('menu')" style="background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:7px 14px;font-size:.9rem;color:var(--dim);cursor:pointer">☰</div>
@@ -488,10 +528,42 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
 <div id="screen-charts" class="screen">
   <div class="hdr">
     <div onclick="showScreen('home')" style="cursor:pointer;display:flex;align-items:center;gap:8px">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <circle cx="14" cy="14" r="14" fill="url(#cg1)"/>
-        <defs><radialGradient id="cg1" cx="40%" cy="35%"><stop offset="0%" stop-color="#00e5ff" stop-opacity=".9"/><stop offset="100%" stop-color="#0066cc" stop-opacity=".7"/></radialGradient></defs>
-        <text x="14" y="19" text-anchor="middle" font-size="14" fill="white">⚡</text>
+      <!-- 작은 달리기 SVG 로고 -->
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style="filter:drop-shadow(0 0 6px rgba(0,229,255,.6))">
+        <defs>
+          <radialGradient id="cg1" cx="40%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#00f5ff" stop-opacity=".2"/>
+            <stop offset="100%" stop-color="#0044cc" stop-opacity=".05"/>
+          </radialGradient>
+        </defs>
+        <circle cx="15" cy="15" r="14" fill="url(#cg1)" stroke="rgba(0,229,255,.25)" stroke-width="1"/>
+        <!-- 머리 -->
+        <circle cx="15" cy="8" r="3" fill="#00e5ff"/>
+        <!-- 몸통 -->
+        <line x1="15" y1="11" x2="15" y2="19" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+        <!-- 왼팔 -->
+        <line x1="15" y1="13.5" x2="9.5" y2="16.5" stroke="#00e5ff" stroke-width="1.6" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" values="0 15 13.5;18 15 13.5;0 15 13.5" dur="0.45s" repeatCount="indefinite"/>
+        </line>
+        <!-- 오른팔 -->
+        <line x1="15" y1="13.5" x2="20.5" y2="16.5" stroke="#00e5ff" stroke-width="1.6" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" values="0 15 13.5;-18 15 13.5;0 15 13.5" dur="0.45s" repeatCount="indefinite"/>
+        </line>
+        <!-- 왼다리 -->
+        <line x1="15" y1="19" x2="10" y2="25.5" stroke="#00e5ff" stroke-width="2" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" values="-22 15 19;22 15 19;-22 15 19" dur="0.45s" repeatCount="indefinite"/>
+        </line>
+        <!-- 오른다리 -->
+        <line x1="15" y1="19" x2="20" y2="25.5" stroke="#00e5ff" stroke-width="2" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" values="22 15 19;-22 15 19;22 15 19" dur="0.45s" repeatCount="indefinite"/>
+        </line>
+        <!-- 속도선 -->
+        <line x1="5" y1="15" x2="1.5" y2="15" stroke="#00e5ff" stroke-width="1.2" stroke-linecap="round" opacity=".6">
+          <animate attributeName="opacity" values=".6;.1;.6" dur=".6s" repeatCount="indefinite"/>
+        </line>
+        <line x1="5" y1="17.5" x2="2.5" y2="17.5" stroke="#00e5ff" stroke-width="1" stroke-linecap="round" opacity=".4">
+          <animate attributeName="opacity" values=".4;.05;.4" dur=".6s" begin=".2s" repeatCount="indefinite"/>
+        </line>
       </svg>
       <span style="font-family:var(--fT);font-size:1rem;color:var(--run);letter-spacing:.06em">뛰뛰점프</span>
     </div>
@@ -499,7 +571,48 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
   </div>
   <div class="charts-body">
     <div class="chart-card">
-      <div class="ctitle r">🏃 달리기</div>
+      <div class="ctitle r" style="display:flex;align-items:center;gap:10px">
+        <!-- 달리기 SVG 로고 (차트용 44px) -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style="filter:drop-shadow(0 0 8px rgba(0,229,255,.65)) drop-shadow(0 0 20px rgba(0,229,255,.25));flex-shrink:0">
+          <defs><radialGradient id="rcbg" cx="40%" cy="30%" r="80%"><stop offset="0%" stop-color="#00f5ff" stop-opacity=".18"/><stop offset="100%" stop-color="#0044cc" stop-opacity=".05"/></radialGradient></defs>
+          <circle cx="22" cy="22" r="21" fill="url(#rcbg)" stroke="rgba(0,229,255,.22)" stroke-width="1"/>
+          <!-- 머리 -->
+          <circle cx="22" cy="10" r="4.2" fill="#00e5ff"/>
+          <!-- 몸통 -->
+          <line x1="22" y1="14.2" x2="22" y2="27" stroke="#00e5ff" stroke-width="2.8" stroke-linecap="round"/>
+          <!-- 왼팔 -->
+          <line x1="22" y1="18.5" x2="13.5" y2="23" stroke="#00e5ff" stroke-width="2.2" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" values="0 22 18.5;20 22 18.5;0 22 18.5" dur="0.45s" repeatCount="indefinite"/>
+          </line>
+          <!-- 오른팔 -->
+          <line x1="22" y1="18.5" x2="30.5" y2="23" stroke="#00e5ff" stroke-width="2.2" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" values="0 22 18.5;-20 22 18.5;0 22 18.5" dur="0.45s" repeatCount="indefinite"/>
+          </line>
+          <!-- 왼다리 -->
+          <line x1="22" y1="27" x2="14" y2="38" stroke="#00e5ff" stroke-width="2.8" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" values="-26 22 27;26 22 27;-26 22 27" dur="0.45s" repeatCount="indefinite"/>
+          </line>
+          <!-- 오른다리 -->
+          <line x1="22" y1="27" x2="30" y2="38" stroke="#00e5ff" stroke-width="2.8" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" values="26 22 27;-26 22 27;26 22 27" dur="0.45s" repeatCount="indefinite"/>
+          </line>
+          <!-- 속도선 -->
+          <line x1="7" y1="21" x2="2" y2="21" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" opacity=".65">
+            <animate attributeName="opacity" values=".65;.1;.65" dur=".6s" repeatCount="indefinite"/>
+          </line>
+          <line x1="7" y1="25" x2="3.5" y2="25" stroke="#00e5ff" stroke-width="1.2" stroke-linecap="round" opacity=".4">
+            <animate attributeName="opacity" values=".4;.05;.4" dur=".6s" begin=".2s" repeatCount="indefinite"/>
+          </line>
+          <!-- 반짝 -->
+          <circle cx="38" cy="9" r="1.6" fill="#00e5ff" opacity=".8">
+            <animate attributeName="opacity" values=".3;1;.3" dur="1.4s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="34" cy="5" r="1.1" fill="#7df9ff" opacity=".6">
+            <animate attributeName="opacity" values="1;.1;1" dur="1.0s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+        <span>달리기</span>
+      </div>
       <div class="ptabs">
         <div class="ptab ar" onclick="setRP('week',this)">주간</div>
         <div class="ptab" onclick="setRP('month',this)">월간</div>
@@ -514,7 +627,52 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
       <div class="chart-wrap"><canvas id="rchart"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="ctitle j">🤸 줄넘기</div>
+      <div class="ctitle j" style="display:flex;align-items:center;gap:10px">
+        <!-- 줄넘기 SVG 로고 (차트용 44px) -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" style="filter:drop-shadow(0 0 8px rgba(0,229,255,.65)) drop-shadow(0 0 20px rgba(0,229,255,.25));flex-shrink:0">
+          <defs><radialGradient id="jcbg" cx="40%" cy="30%" r="80%"><stop offset="0%" stop-color="#00f5ff" stop-opacity=".18"/><stop offset="100%" stop-color="#0044cc" stop-opacity=".05"/></radialGradient></defs>
+          <circle cx="22" cy="22" r="21" fill="url(#jcbg)" stroke="rgba(0,229,255,.22)" stroke-width="1"/>
+          <!-- 줄 왼쪽 -->
+          <path d="M3,24 Q12,8 22,24" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" fill="none">
+            <animate attributeName="d"
+              values="M3,24 Q12,8 22,24;M3,24 Q12,36 22,24;M3,24 Q12,8 22,24"
+              dur=".55s" repeatCount="indefinite"/>
+          </path>
+          <!-- 줄 오른쪽 -->
+          <path d="M22,24 Q32,8 41,24" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" fill="none">
+            <animate attributeName="d"
+              values="M22,24 Q32,8 41,24;M22,24 Q32,36 41,24;M22,24 Q32,8 41,24"
+              dur=".55s" repeatCount="indefinite"/>
+          </path>
+          <!-- 점프하는 사람 -->
+          <g>
+            <animateTransform attributeName="transform" type="translate" values="0,0;0,-6;0,0" dur=".55s" repeatCount="indefinite"/>
+            <!-- 머리 -->
+            <circle cx="22" cy="12" r="4" fill="#00e5ff"/>
+            <!-- 몸통 -->
+            <line x1="22" y1="16" x2="22" y2="26" stroke="#00e5ff" stroke-width="2.8" stroke-linecap="round"/>
+            <!-- 왼팔 (줄 잡고 벌림) -->
+            <line x1="22" y1="19" x2="12.5" y2="24" stroke="#00e5ff" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- 오른팔 (줄 잡고 벌림) -->
+            <line x1="22" y1="19" x2="31.5" y2="24" stroke="#00e5ff" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- 왼다리 (모아서) -->
+            <line x1="22" y1="26" x2="18" y2="35" stroke="#00e5ff" stroke-width="2.8" stroke-linecap="round"/>
+            <!-- 오른다리 (모아서) -->
+            <line x1="22" y1="26" x2="26" y2="35" stroke="#00e5ff" stroke-width="2.8" stroke-linecap="round"/>
+          </g>
+          <!-- 반짝 -->
+          <circle cx="38" cy="9" r="1.6" fill="#00e5ff" opacity=".8">
+            <animate attributeName="opacity" values=".3;1;.3" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="8" cy="8" r="1.1" fill="#7df9ff" opacity=".6">
+            <animate attributeName="opacity" values="1;.1;1" dur="1.1s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="36" cy="37" r=".9" fill="#fff" opacity=".5">
+            <animate attributeName="opacity" values=".2;.8;.2" dur=".85s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+        <span>줄넘기</span>
+      </div>
       <div class="ptabs">
         <div class="ptab aj" onclick="setJP('week',this)">주간</div>
         <div class="ptab" onclick="setJP('month',this)">월간</div>
@@ -537,10 +695,44 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
     <span class="hdr-title">☰ 메뉴</span>
     <div onclick="showScreen('home')" style="cursor:pointer;display:flex;align-items:center;gap:7px">
       <span style="font-family:var(--fT);font-size:1rem;color:var(--run);letter-spacing:.06em">뛰뛰점프</span>
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <circle cx="14" cy="14" r="14" fill="url(#mg1)"/>
-        <defs><radialGradient id="mg1" cx="40%" cy="35%"><stop offset="0%" stop-color="#00e5ff" stop-opacity=".9"/><stop offset="100%" stop-color="#0066cc" stop-opacity=".7"/></radialGradient></defs>
-        <text x="14" y="19" text-anchor="middle" font-size="14" fill="white">⚡</text>
+      <!-- 작은 줄넘기 SVG 로고 -->
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style="filter:drop-shadow(0 0 6px rgba(0,229,255,.6))">
+        <defs>
+          <radialGradient id="mg1" cx="40%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#00f5ff" stop-opacity=".2"/>
+            <stop offset="100%" stop-color="#0044cc" stop-opacity=".05"/>
+          </radialGradient>
+        </defs>
+        <circle cx="15" cy="15" r="14" fill="url(#mg1)" stroke="rgba(0,229,255,.25)" stroke-width="1"/>
+        <!-- 줄 왼쪽 -->
+        <path d="M3,17 Q9,6 15,17" stroke="#00e5ff" stroke-width="1.6" stroke-linecap="round" fill="none">
+          <animate attributeName="d"
+            values="M3,17 Q9,6 15,17;M3,17 Q9,24 15,17;M3,17 Q9,6 15,17"
+            dur=".55s" repeatCount="indefinite"/>
+        </path>
+        <!-- 줄 오른쪽 -->
+        <path d="M15,17 Q21,6 27,17" stroke="#00e5ff" stroke-width="1.6" stroke-linecap="round" fill="none">
+          <animate attributeName="d"
+            values="M15,17 Q21,6 27,17;M15,17 Q21,24 27,17;M15,17 Q21,6 27,17"
+            dur=".55s" repeatCount="indefinite"/>
+        </path>
+        <!-- 점프하는 사람 -->
+        <g>
+          <animateTransform attributeName="transform" type="translate" values="0,0;0,-4;0,0" dur=".55s" repeatCount="indefinite"/>
+          <circle cx="15" cy="8.5" r="2.8" fill="#00e5ff"/>
+          <line x1="15" y1="11.3" x2="15" y2="18" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="15" y1="13.5" x2="10" y2="17" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="15" y1="13.5" x2="20" y2="17" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="15" y1="18" x2="12" y2="23" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="15" y1="18" x2="18" y2="23" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round"/>
+        </g>
+        <!-- 반짝 -->
+        <circle cx="25" cy="7" r="1.2" fill="#00e5ff" opacity=".8">
+          <animate attributeName="opacity" values=".3;1;.3" dur="1.3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="5" cy="8" r=".9" fill="#7df9ff" opacity=".6">
+          <animate attributeName="opacity" values="1;.1;1" dur="1.0s" repeatCount="indefinite"/>
+        </circle>
       </svg>
     </div>
   </div>
@@ -851,9 +1043,13 @@ function showScreen(n) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-'+n).classList.add('active');
   if (n === 'charts') refreshCharts();
+  // 화면 전환 시 해당 화면 데이터 동기화
+  if (n === 'jump') {
+    renderJumpScreen().catch(e => console.error('jump sync:', e));
+  }
 }
 function goRunFlow() { renderCourseList(); showScreen('course'); }
-function goJump()    { showScreen('jump'); renderJumpScreen(); }
+function goJump()    { showScreen('jump'); }
 function toggleFS() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -938,6 +1134,7 @@ function selectCourse(idx) {
 let cdInt = null;
 async function initRun() {
   try {
+    // 항상 DB에서 최신 데이터 로드 (기기간 동기화)
     const all = await getAllRuns();
     const t   = today();
     const rec = all.find(r => r.date===t && r.course===S.selCourse);
@@ -946,9 +1143,15 @@ async function initRun() {
     } else {
       S.runRec = {_idbid:null, _sbid:null, laps:0};
     }
-    document.getElementById('bignum').textContent = S.runRec.laps;
+    const bn = document.getElementById('bignum');
+    if (bn) bn.textContent = S.runRec.laps;
     renderRecentStrip(all);
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    console.error('initRun:', e);
+    // DB 실패 시 현재 메모리 값 유지
+    const bn = document.getElementById('bignum');
+    if (bn) bn.textContent = S.runRec.laps || 0;
+  }
 }
 async function handleTap() {
   if (S.runCD) return;
@@ -1017,16 +1220,17 @@ function resetRun() {
 function visibleChars() { return S.characters.filter(c=>!c.hidden); }
 
 async function renderJumpScreen() {
-  // Set date label
-  const dl = document.getElementById('jump-date-lbl');
-  if (dl) dl.textContent = fmtF(today());
+  // 매번 열 때 오늘 캐시 삭제 → DB에서 최신 데이터 항상 재로드
+  const t = today();
+  Object.keys(S.jCache).filter(k => k.startsWith(t+'-')).forEach(k => delete S.jCache[k]);
 
-  // Set animated figure
+  const dl = document.getElementById('jump-date-lbl');
+  if (dl) dl.textContent = fmtF(t);
+
   const vc = visibleChars();
   const jf = document.getElementById('jfig');
   if (jf) jf.textContent = (vc[0] && !vc[0].img) ? vc[0].av : '🧑';
 
-  // Build table
   await buildJumpTable();
 }
 
@@ -1050,14 +1254,15 @@ async function buildJumpTable() {
   let allJumps = [];
   try { allJumps = await getAllJumps(); } catch(e) { console.error(e); allJumps = []; }
 
-  // Populate cache for today
+  // 항상 DB 데이터로 캐시 갱신 (기기간 동기화)
   for (const c of vc) {
     const key = t + '-' + c.id;
-    if (!S.jCache[key]) {
-      const rec = allJumps.find(r => r.date===t && r.charId===c.id);
-      if (rec) {
-        S.jCache[key] = {_idbid: SB?null:rec.id, _sbid: SB?rec.id:null, rounds: safeRounds(rec.rounds)};
-      } else {
+    const rec = allJumps.find(r => r.date===t && r.charId===c.id);
+    if (rec) {
+      S.jCache[key] = {_idbid: SB?null:rec.id, _sbid: SB?rec.id:null, rounds: safeRounds(rec.rounds)};
+    } else {
+      // 기존 캐시가 없을 때만 빈 값으로 초기화 (입력 중인 값 보호)
+      if (!S.jCache[key]) {
         S.jCache[key] = {_idbid:null, _sbid:null, rounds: new Array(8).fill(0)};
       }
     }
@@ -1794,6 +1999,23 @@ async function init() {
 }
 
 init().then(()=>{ applyPageLogos(); });
+
+// 앱이 백그라운드에서 포그라운드로 올 때 데이터 재동기화
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const active = document.querySelector('.screen.active');
+    if (!active) return;
+    const id = active.id;
+    if (id === 'screen-run' && S.selCourse) {
+      initRun().catch(()=>{});
+    } else if (id === 'screen-jump') {
+      // 오늘 캐시 삭제 후 재로드
+      const t = today();
+      Object.keys(S.jCache).filter(k=>k.startsWith(t+'-')).forEach(k=>delete S.jCache[k]);
+      renderJumpScreen().catch(()=>{});
+    }
+  }
+});
 
 // ── Shared SVG Logo Builders ──
 function svgLogoRun(size=52, glowId='') {
