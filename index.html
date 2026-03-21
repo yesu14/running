@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="운동기록기">
 <link rel="manifest" id="pwa-manifest">
-<title>뛰뛰점프</title>
+<title>콩콩런</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -306,7 +306,7 @@ select option{background:var(--sur2);color:var(--txt)}
 <!-- SETUP -->
 <div id="screen-setup" class="screen">
   <div class="setup-box">
-    <div class="setup-title">⚡ 뛰뛰점프</div>
+    <div class="setup-title">⚡ 콩콩런</div>
     <div class="setup-sub">Supabase에 연결하면 데이터가 클라우드에 저장돼요.<br>나중에 메뉴에서도 설정할 수 있어요.</div>
     <div class="setup-lbl">Supabase URL</div>
     <input class="setup-inp" id="sb-url" placeholder="https://xxx.supabase.co">
@@ -391,7 +391,7 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
 
     <!-- app name -->
     <div style="text-align:center;display:flex;flex-direction:column;gap:6px">
-      <div class="home-appname">뛰뛰점프</div>
+      <div class="home-appname">콩콩런</div>
       <div class="home-tagline">운동하면 더 예쁘고 멋진 내가 돼요! ✨</div>
     </div>
 
@@ -565,7 +565,7 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
           <animate attributeName="opacity" values=".4;.05;.4" dur=".6s" begin=".2s" repeatCount="indefinite"/>
         </line>
       </svg>
-      <span style="font-family:var(--fT);font-size:1rem;color:var(--run);letter-spacing:.06em">뛰뛰점프</span>
+      <span style="font-family:var(--fT);font-size:1rem;color:var(--run);letter-spacing:.06em">콩콩런</span>
     </div>
     <button class="hbtn" onclick="refreshCharts()">↻</button>
   </div>
@@ -611,7 +611,10 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
             <animate attributeName="opacity" values="1;.1;1" dur="1.0s" repeatCount="indefinite"/>
           </circle>
         </svg>
-        <span>달리기</span>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span>달리기</span>
+          <span id="run-total-dist" style="font-size:.82rem;color:var(--dim);font-family:var(--fB);font-weight:400"></span>
+        </div>
       </div>
       <div class="ptabs">
         <div class="ptab ar" onclick="setRP('week',this)">주간</div>
@@ -671,7 +674,10 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
             <animate attributeName="opacity" values=".2;.8;.2" dur=".85s" repeatCount="indefinite"/>
           </circle>
         </svg>
-        <span>줄넘기</span>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span>줄넘기</span>
+          <div id="jump-char-totals" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
       </div>
       <div class="ptabs">
         <div class="ptab aj" onclick="setJP('week',this)">주간</div>
@@ -694,7 +700,7 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
   <div class="hdr">
     <span class="hdr-title">☰ 메뉴</span>
     <div onclick="showScreen('home')" style="cursor:pointer;display:flex;align-items:center;gap:7px">
-      <span style="font-family:var(--fT);font-size:1rem;color:var(--run);letter-spacing:.06em">뛰뛰점프</span>
+      <span style="font-family:var(--fT);font-size:1rem;color:var(--run);letter-spacing:.06em">콩콩런</span>
       <!-- 작은 줄넘기 SVG 로고 -->
       <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style="filter:drop-shadow(0 0 6px rgba(0,229,255,.6))">
         <defs>
@@ -750,6 +756,15 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
       </div>
     </div>
     <div class="mgrp">
+      <div class="mgrp-ttl">체중</div>
+      <div class="mitem" onclick="showScreen('weight');initWeightScreen()">
+        <div class="mitem-l"><span class="mico">⚖️</span>체중 기록</div><span class="marr">›</span>
+      </div>
+      <div class="mitem" onclick="showScreen('weightchart');renderWeightCharts()">
+        <div class="mitem-l"><span class="mico">📈</span>체중 차트</div><span class="marr">›</span>
+      </div>
+    </div>
+    <div class="mgrp">
       <div class="mgrp-ttl">데이터</div>
       <div class="mitem" onclick="showScreen('editdata');loadEditData()">
         <div class="mitem-l"><span class="mico">✏️</span>기록 수정/삭제/추가</div><span class="marr">›</span>
@@ -792,6 +807,53 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
     <div class="modal-ttl" id="modal-ttl"></div>
     <div id="modal-body"></div>
     <div class="mbtns" id="modal-btns"></div>
+  </div>
+</div>
+
+<!-- WEIGHT RECORD -->
+<div id="screen-weight" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('menu')">← 메뉴</button>
+    <span class="hdr-title" style="color:var(--run)">⚖️ 체중 기록</span>
+    <button class="fsbtn" onclick="toggleFS()">⛶</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:10px 14px 6px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:.88rem;color:var(--dim)" id="weight-date-lbl"></span>
+      <input type="date" id="weight-date-inp"
+        style="background:var(--sur2);border:1px solid var(--brd);border-radius:10px;color:var(--txt);padding:7px 10px;font-size:.88rem;font-family:var(--fB);outline:none;cursor:pointer"
+        onchange="onWeightDateChange(this.value)">
+    </div>
+    <div style="flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed" id="weight-table">
+        <thead id="weight-thead"></thead>
+        <tbody id="weight-tbody"></tbody>
+        <tfoot id="weight-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT CHART -->
+<div id="screen-weightchart" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('menu')">← 메뉴</button>
+    <span class="hdr-title" style="color:var(--run)">⚖️ 체중 차트</span>
+    <button class="hbtn" onclick="renderWeightCharts()">↻</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px">
+    <div class="ptabs" id="wc-ptabs">
+      <div class="ptab ar" onclick="setWP('week',this)">주간</div>
+      <div class="ptab" onclick="setWP('month',this)">월간</div>
+      <div class="ptab" onclick="setWP('custom',this)">기간</div>
+    </div>
+    <div class="drange" id="wdr">
+      <input type="date" class="dtinp" id="wds">
+      <span style="color:var(--dim)">~</span>
+      <input type="date" class="dtinp" id="wde">
+      <button class="applybtn" onclick="applyWR()">적용</button>
+    </div>
+    <div id="weight-charts-wrap"></div>
   </div>
 </div>
 
@@ -916,7 +978,7 @@ async function getAllJumps() {
 
 async function saveRun(rec) {
   if (SB) {
-    const p = {date:rec.date, course:rec.course||'', laps:rec.laps, ts: Date.now()};
+    const p = {date:rec.date, course:rec.course||'', course_id:rec.course_id||null, laps:rec.laps, ts: Date.now()};
     if (rec._sbid) {
       const {error} = await SB.from('fitness_runs').update(p).eq('id', rec._sbid);
       if (error) { console.error('saveRun update:', error); toast('저장 오류: '+error.message); }
@@ -930,7 +992,6 @@ async function saveRun(rec) {
   }
   if (!_idb) return null;
   const r = {date:rec.date, course:rec.course||'', laps:rec.laps, timestamp:Date.now()};
-  if (rec._idbid) r.id = rec._idbid;
   return await idbPut('runs', r);
 }
 
@@ -972,6 +1033,80 @@ async function clearAll() {
   if (_idb) { await idbClear('runs'); await idbClear('jumps'); }
 }
 
+// ===================== DB: Courses & Characters & Weights =====================
+
+async function dbLoadCourses() {
+  if (!SB) { S.courses = [...DEFAULT_COURSES]; return; }
+  try {
+    const {data,error} = await SB.from('fitness_courses').select('*').order('sort_order');
+    if (error || !data || !data.length) {
+      S.courses = [...DEFAULT_COURSES];
+      for (const c of DEFAULT_COURSES) {
+        try { await SB.from('fitness_courses').upsert({id:c.id,name:c.name,meter:c.meter,sort_order:c.sort_order},{onConflict:'id'}); } catch(e){}
+      }
+      return;
+    }
+    S.courses = data.map(r=>({id:r.id,name:r.name,meter:r.meter||0,sort_order:r.sort_order||0}));
+  } catch(e) { console.error('dbLoadCourses:',e); S.courses=[...DEFAULT_COURSES]; }
+}
+
+async function dbSaveCourse(c) {
+  if (!SB) return;
+  try { await SB.from('fitness_courses').upsert({id:c.id,name:c.name,meter:c.meter||0,sort_order:c.sort_order||0},{onConflict:'id'}); }
+  catch(e) { console.error('dbSaveCourse:',e); }
+}
+
+async function dbDeleteCourse(id) {
+  if (!SB) return;
+  try { await SB.from('fitness_courses').delete().eq('id',id); }
+  catch(e) { console.error('dbDeleteCourse:',e); }
+}
+
+async function dbLoadChars() {
+  if (!SB) { S.characters = [...DEFAULT_CHARS]; return; }
+  try {
+    const {data,error} = await SB.from('fitness_characters').select('*').order('sort_order');
+    if (error || !data || !data.length) {
+      S.characters = DEFAULT_CHARS.map(c=>({...c}));
+      for (const c of DEFAULT_CHARS) {
+        try { await SB.from('fitness_characters').upsert({id:c.id,name:c.name,av:c.av,img:c.img,hidden:c.hidden,sort_order:c.sort_order},{onConflict:'id'}); } catch(e){}
+      }
+      return;
+    }
+    S.characters = data.map(r=>({id:r.id,name:r.name,av:r.av||'👤',img:r.img||null,hidden:r.hidden||false,sort_order:r.sort_order||0}));
+  } catch(e) { console.error('dbLoadChars:',e); S.characters=DEFAULT_CHARS.map(c=>({...c})); }
+}
+
+async function dbSaveChar(c) {
+  if (!SB) return;
+  try { await SB.from('fitness_characters').upsert({id:c.id,name:c.name,av:c.av,img:c.img,hidden:c.hidden,sort_order:c.sort_order},{onConflict:'id'}); }
+  catch(e) { console.error('dbSaveChar:',e); }
+}
+
+// 체중 DB
+async function getAllWeights() {
+  if (!SB) return [];
+  const {data,error} = await SB.from('fitness_weights').select('*').order('date',{ascending:false});
+  if (error) return [];
+  return (data||[]).map(r=>({id:r.id,date:r.date,charId:r.char_id,weight:parseFloat(r.weight)||0}));
+}
+async function saveWeight(rec) {
+  if (!SB) return null;
+  const p = {date:rec.date, char_id:rec.charId, weight:rec.weight, updated_at:Date.now()};
+  if (rec._sbid) {
+    await SB.from('fitness_weights').update(p).eq('id',rec._sbid);
+    return rec._sbid;
+  } else {
+    const {data,error} = await SB.from('fitness_weights').insert(p).select().single();
+    if (error) { console.error('saveWeight:',error); toast('체중 저장 오류: '+error.message); return null; }
+    return data.id;
+  }
+}
+async function deleteWeight(id) {
+  if (!SB) return;
+  await SB.from('fitness_weights').delete().eq('id',id);
+}
+
 // ===================== Avatars =====================
 const AV_GROUPS = [
   {label:'가족',      items:['👨','👩','👧','👦','👶','🧑','👴','👵','🧔','👩‍🦱','👨‍🦳']},
@@ -983,21 +1118,33 @@ const AV_GROUPS = [
 
 // ===================== App State =====================
 const S = {
-  courses:    [{name:'실내',meter:0},{name:'실외',meter:0},{name:'운동장',meter:400}],
-  characters: [
-    {id:'c0', name:'아빠',     av:'👨', img:null, hidden:false},
-    {id:'c1', name:'엄마',     av:'👩', img:null, hidden:false},
-    {id:'c2', name:'귀염둥이', av:'👶', img:null, hidden:false},
-  ],
-  selCourse: '',
-  runRec: {_idbid:null, _sbid:null, laps:0},
+  // courses: {id, name, meter, sort_order} — DB에서 로드
+  courses: [],
+  // characters: {id, name, av, img, hidden, sort_order} — DB에서 로드
+  characters: [],
+  selCourseId: '',   // 선택된 코스 ID
+  selCourseName: '', // 선택된 코스 이름 (표시용)
+  runRec: {_sbid:null, laps:0},
   runCD: false,
-  // jump data cache: key = "date-charId" -> {_idbid, _sbid, rounds[8]}
-  jCache: {},
-  rP:'week', jP:'week',
-  rRange:null, jRange:null,
+  jCache: {}, // "date-charId" -> {_sbid, rounds[8]}
+  wCache: {}, // "date-charId" -> {_sbid, weight}
+  rP:'week', jP:'week', wP:'week',
+  rRange:null, jRange:null, wRange:null,
   editAvIdx: null, selAv: null,
 };
+
+// 기본 코스 (DB 비었을 때)
+const DEFAULT_COURSES = [
+  {id:'course-1', name:'실내',   meter:0,   sort_order:0},
+  {id:'course-2', name:'실외',   meter:0,   sort_order:1},
+  {id:'course-3', name:'운동장', meter:400, sort_order:2},
+];
+// 기본 캐릭터 (DB 비었을 때)
+const DEFAULT_CHARS = [
+  {id:'char-1', name:'아빠',     av:'👨', img:null, hidden:false, sort_order:0},
+  {id:'char-2', name:'엄마',     av:'👩', img:null, hidden:false, sort_order:1},
+  {id:'char-3', name:'귀염둥이', av:'👶', img:null, hidden:false, sort_order:2},
+];
 
 const today = () => {
   const d = new Date();
@@ -1009,51 +1156,15 @@ const fmtF  = d => {
   return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`;
 };
 
-// ── Settings: Supabase 전용, 로컬 저장 없음 ──
-const migrateCourses = arr => {
-  if (!Array.isArray(arr)) return S.courses;
-  return arr.map(c => typeof c === 'string' ? {name:c, meter:0} : {name:c.name||'', meter:c.meter||0});
-};
-
+// saveSettings → 이제 dbSaveCourse/dbSaveChar 개별 호출로 대체
+// loadSettings → dbLoadCourses + dbLoadChars
 async function saveSettings() {
-  if (!SB) { console.warn('saveSettings: SB 없음'); return; }
-  const val = JSON.stringify({courses: S.courses, characters: S.characters});
-  try {
-    const {error} = await SB.from('fitness_settings')
-      .upsert({key: 'app', value: val}, {onConflict: 'key'});
-    if (error) {
-      console.error('saveSettings 오류:', error);
-      toast('설정 저장 실패: ' + (error.message||error.code));
-    } else {
-      console.log('✅ 설정 저장됨');
-    }
-  } catch(e) {
-    console.error('saveSettings 예외:', e);
-    toast('설정 저장 오류: ' + e.message);
-  }
+  // 하위 호환 — 실제 저장은 dbSaveCourse/dbSaveChar 에서 처리
 }
-
 async function loadSettings() {
-  if (!SB) { console.warn('loadSettings: SB 없음'); return; }
-  try {
-    const {data, error} = await SB.from('fitness_settings')
-      .select('value').eq('key', 'app').single();
-    if (error) {
-      // PGRST116 = row not found → 첫 사용, 기본값 유지
-      if (error.code === 'PGRST116') {
-        console.log('설정 없음 → 기본값 사용');
-        return;
-      }
-      console.error('loadSettings 오류:', error);
-      toast('설정 로드 실패: ' + (error.message||error.code));
-      return;
-    }
-    if (!data) return;
-    const s = JSON.parse(data.value);
-    if (s.courses)    S.courses    = migrateCourses(s.courses);
-    if (s.characters) S.characters = s.characters.map(c=>({hidden:false,...c}));
-    console.log('✅ 설정 로드:', s.courses?.length, '코스,', s.characters?.length, '캐릭터');
-  } catch(e) { console.error('loadSettings 예외:', e); }
+  await dbLoadCourses();
+  await dbLoadChars();
+  console.log('✅ 설정 로드:', S.courses.length, '코스,', S.characters.length, '캐릭터');
 }
 
 // ===================== Screen Nav =====================
@@ -1126,14 +1237,11 @@ function renderCourseList() {
 function selectCourse(idx) {
   const cObj = S.courses[idx];
   if (!cObj) return;
-  const c = cObj.name;
-  S.selCourse = c;
-  // 즉시 화면 전환
+  // ID 기반으로 코스 추적 (이름 변경해도 기록 유지)
+  S.selCourseId   = cObj.id;
+  S.selCourseName = cObj.name;
   const lbl = document.getElementById('run-course-lbl');
-  if (lbl) {
-    const cObj2 = S.courses.find(x=>x.name===c);
-    lbl.textContent = c + (cObj2 && cObj2.meter ? '  '+cObj2.meter+'m' : '');
-  }
+  if (lbl) lbl.textContent = cObj.name + (cObj.meter ? '  '+cObj.meter+'m' : '');
   const bn = document.getElementById('bignum');
   if (bn) bn.textContent = '0';
   const rs = document.getElementById('recent-strip');
@@ -1152,14 +1260,14 @@ function selectCourse(idx) {
 let cdInt = null;
 async function initRun() {
   try {
-    // 항상 DB에서 최신 데이터 로드 (기기간 동기화)
     const all = await getAllRuns();
     const t   = today();
-    const rec = all.find(r => r.date===t && r.course===S.selCourse);
+    // course_id로 찾기 (이름 변경해도 기록 매칭)
+    const rec = all.find(r => r.date===t && (r.course_id===S.selCourseId || (!r.course_id && r.course===S.selCourseName)));
     if (rec) {
-      S.runRec = {_idbid: SB?null:rec.id, _sbid: SB?rec.id:null, laps:rec.laps};
+      S.runRec = {_sbid: rec.id, laps:rec.laps};
     } else {
-      S.runRec = {_idbid:null, _sbid:null, laps:0};
+      S.runRec = {_sbid:null, laps:0};
     }
     const bn = document.getElementById('bignum');
     if (bn) bn.textContent = S.runRec.laps;
@@ -1191,22 +1299,20 @@ async function handleTap() {
 }
 async function saveCurrentRun() {
   const newId = await saveRun({
-    date:    today(),
-    course:  S.selCourse,
-    laps:    S.runRec.laps,
-    _idbid:  S.runRec._idbid,
-    _sbid:   S.runRec._sbid,
+    date:      today(),
+    course:    S.selCourseName,
+    course_id: S.selCourseId,
+    laps:      S.runRec.laps,
+    _sbid:     S.runRec._sbid,
   });
-  if (!S.runRec._idbid && !S.runRec._sbid) {
-    if (SB) S.runRec._sbid = newId; else S.runRec._idbid = newId;
-  }
+  if (!S.runRec._sbid) S.runRec._sbid = newId;
   const all = await getAllRuns();
   renderRecentStrip(all);
 }
 function renderRecentStrip(all) {
   const t = today();
   const past = (all||[])
-    .filter(r => r.course===S.selCourse && r.date<t)
+    .filter(r => r.date<t && (r.course_id===S.selCourseId || (!r.course_id && r.course===S.selCourseName)))
     .sort((a,b)=>b.date.localeCompare(a.date))
     .slice(0,3);
   document.getElementById('recent-strip').innerHTML =
@@ -1424,7 +1530,7 @@ function hideChar(id) {
   const c = S.characters.find(x=>x.id===id);
   if (!c) return;
   c.hidden = true;
-  saveSettings();
+  dbSaveChar(c);
   buildJumpTable();
   toast(`${c.name} 숨김. 메뉴에서 복구할 수 있어요.`);
 }
@@ -1442,7 +1548,7 @@ function showHiddenChars() {
 }
 function restoreChar(id) {
   const c = S.characters.find(x=>x.id===id);
-  if (c) { c.hidden=false; saveSettings(); toast(`${c.name} 복구됨`); closeModal(null); }
+  if (c) { c.hidden=false; dbSaveChar(c); toast(`${c.name} 복구됨`); closeModal(null); }
 }
 
 // ===================== Char Edit =====================
@@ -1479,7 +1585,7 @@ function editCharName(id) {
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok-o',fn:async()=>{
       const v=document.getElementById('cn2').value.trim();
       if (v) S.characters[S.editAvIdx].name=v;
-      await saveSettings(); buildJumpTable(); closeModal(null); toast('저장됨!');
+      await dbSaveChar(S.characters[S.editAvIdx]); buildJumpTable(); closeModal(null); toast('저장됨!');
     }}]);
   setTimeout(()=>document.getElementById('cn2')?.focus(),80);
 }
@@ -1509,7 +1615,8 @@ async function saveCharEdit() {
   const el=document.getElementById('cn');
   if (el&&el.value.trim()) S.characters[idx].name=el.value.trim();
   if (S.selAv) { S.characters[idx].av=S.selAv; S.characters[idx].img=null; }
-  await saveSettings(); buildJumpTable(); closeModal(null); toast('저장됨!');
+  await dbSaveChar(S.characters[idx]);
+  buildJumpTable(); closeModal(null); toast('저장됨!');
 }
 
 // ===================== Course Manage =====================
@@ -1523,6 +1630,7 @@ async function renderCourseManage() {
           <span style="font-size:1rem;font-weight:500">${c.name}</span>
         </span>
         ${c.meter ? `<span style="font-size:.82rem;color:var(--dim);padding-left:22px">${c.meter}m</span>` : '<span style="font-size:.82rem;color:var(--brd);padding-left:22px">거리 미입력</span>'}
+        <span style="font-size:.7rem;color:var(--brd);padding-left:22px">ID: ${c.id}</span>
       </div>
       <div class="citem-btns">
         <button class="cibtn" onclick="editCourse(${i})">✏️</button>
@@ -1542,7 +1650,10 @@ function addCourse() {
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'추가',cls:'ok',fn:async()=>{
       const name=document.getElementById('nc-name').value.trim(); if(!name)return;
       const meter=parseInt(document.getElementById('nc-meter').value)||0;
-      S.courses.push({name,meter}); await saveSettings(); renderCourseManage(); closeModal(null); toast(`'${name}' 추가!`);
+      const newCourse={id:'course-'+Date.now(), name, meter, sort_order:S.courses.length};
+      S.courses.push(newCourse);
+      await dbSaveCourse(newCourse);
+      renderCourseManage(); closeModal(null); toast(`'${name}' 추가!`);
     }}]);
   setTimeout(()=>document.getElementById('nc-name')?.focus(),80);
 }
@@ -1557,14 +1668,20 @@ function editCourse(i) {
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
       const name=document.getElementById('ec-name').value.trim(); if(!name)return;
       const meter=parseInt(document.getElementById('ec-meter').value)||0;
-      S.courses[i]={name,meter}; await saveSettings(); renderCourseManage(); closeModal(null); toast('수정됨!');
+      // ID는 유지, 이름/거리만 변경 → 기존 달리기 기록은 course_id로 연결되어 있으므로 문제없음
+      S.courses[i]={...S.courses[i], name, meter};
+      await dbSaveCourse(S.courses[i]);
+      renderCourseManage(); closeModal(null); toast('수정됨!');
     }}]);
   setTimeout(()=>document.getElementById('ec-name')?.focus(),80);
 }
 function delCourse(i) {
   openModal('코스 삭제',`<p style="color:var(--dim);margin-bottom:14px">'${S.courses[i].name}' 삭제할까요?</p>`,
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'삭제',cls:'ok-d',fn:async()=>{
-      S.courses.splice(i,1); await saveSettings(); renderCourseManage(); closeModal(null); toast('삭제됨');
+      const id=S.courses[i].id;
+      S.courses.splice(i,1);
+      await dbDeleteCourse(id);
+      renderCourseManage(); closeModal(null); toast('삭제됨');
     }}]);
 }
 
@@ -1920,6 +2037,26 @@ async function renderRC() {
   const dates=dIn(start,end), labels=dates.map(fmtD);
   const data=dates.map(d=>all.filter(r=>r.date===d).reduce((s,r)=>s+r.laps,0));
   const todayIdx=dates.indexOf(today());
+
+  // 총거리 계산: 바퀴 × 코스별 meter
+  let totalMeters = 0;
+  for (const r of all.filter(r=>r.date>=start && r.date<=end)) {
+    // course_id 또는 course 이름으로 코스 찾기
+    const cObj = S.courses.find(c=>c.id===r.course_id) || S.courses.find(c=>c.name===r.course);
+    const meter = cObj ? (cObj.meter||0) : 0;
+    totalMeters += r.laps * meter;
+  }
+  const totalEl = document.getElementById('run-total-dist');
+  if (totalEl) {
+    if (totalMeters >= 1000) {
+      totalEl.textContent = `런닝 총거리: ${(totalMeters/1000).toFixed(1)}km`;
+    } else if (totalMeters > 0) {
+      totalEl.textContent = `런닝 총거리: ${totalMeters}m`;
+    } else {
+      totalEl.textContent = '거리 정보 없음 (코스에 거리 등록 필요)';
+    }
+  }
+
   const ctx=document.getElementById('rchart').getContext('2d');
   if (rCI) rCI.destroy();
   // 오늘 점만 크게
@@ -1964,6 +2101,24 @@ async function renderJC() {
   const dates=dIn(start,end), labels=dates.map(fmtD);
   const colors=['#ff6b35','#a855f7','#2ecc71'];
   const todayIdx=dates.indexOf(today());
+
+  // 캐릭터별 총수량 계산
+  const charTotalsEl = document.getElementById('jump-char-totals');
+  if (charTotalsEl) {
+    const vc = S.characters.filter(c=>!c.hidden);
+    charTotalsEl.innerHTML = vc.map((c,ci)=>{
+      const tot = all
+        .filter(r=>r.charId===c.id && r.date>=start && r.date<=end)
+        .reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0);
+      const col = colors[ci%3];
+      const avEl = c.img ? '🧑' : c.av;
+      return `<span style="display:flex;align-items:center;gap:3px;font-size:.8rem;color:${col}">
+        <span>${avEl}</span>
+        <span style="font-family:var(--fT)">${tot.toLocaleString()}</span>
+      </span>`;
+    }).join('');
+  }
+
   const datasets=S.characters.map((c,ci)=>{
     const data=dates.map(d=>all.filter(r=>r.date===d&&r.charId===c.id).reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0));
     const pointR=dates.map((_,i)=>i===todayIdx?7:3);
@@ -2005,13 +2160,234 @@ function applyRR(){const s=document.getElementById('rds').value,e=document.getEl
 function applyJR(){const s=document.getElementById('jds').value,e=document.getElementById('jde').value;if(!s||!e){toast('날짜 선택');return;}S.jRange={start:s,end:e};renderJC();}
 async function refreshCharts(){await renderRC();await renderJC();}
 
+// ===================== Weight Record =====================
+let wDate = '';
+
+async function initWeightScreen() {
+  wDate = today();
+  document.getElementById('weight-date-inp').value = wDate;
+  document.getElementById('weight-date-lbl').textContent = fmtF(wDate);
+  await buildWeightTable(wDate);
+}
+
+function onWeightDateChange(d) {
+  wDate = d;
+  document.getElementById('weight-date-lbl').textContent = fmtF(d);
+  buildWeightTable(d);
+}
+
+async function buildWeightTable(date) {
+  const vc = S.characters.filter(c=>!c.hidden);
+  const allW = await getAllWeights().catch(()=>[]);
+
+  // 오늘 데이터
+  const todayMap = {};
+  for (const c of vc) {
+    const rec = allW.find(r=>r.charId===c.id && r.date===date);
+    todayMap[c.id] = rec ? {_sbid:rec.id, weight:rec.weight} : {_sbid:null, weight:null};
+    if (!S.wCache[date+'-'+c.id]) S.wCache[date+'-'+c.id] = todayMap[c.id];
+    else {
+      // 최신 DB 데이터로 갱신
+      S.wCache[date+'-'+c.id] = todayMap[c.id];
+    }
+  }
+
+  // 이전 기록
+  const prevMap = {};
+  for (const c of vc) {
+    const prev = allW.filter(r=>r.charId===c.id && r.date<date).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    prevMap[c.id] = prev ? prev.weight : null;
+  }
+
+  // ── THEAD ──
+  let th = `<tr><th style="background:var(--sur2);border-right:2px solid var(--brd);border-bottom:2px solid var(--brd);width:36px;padding:10px 4px;font-size:.88rem;color:var(--dim);position:sticky;top:0;z-index:20">회</th>`;
+  for (const c of vc) {
+    const avEl = c.img ? `<img src="${c.img}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">` : c.av;
+    th += `<th style="background:var(--sur2);border-right:1px solid var(--brd);border-bottom:2px solid var(--brd);padding:0;position:sticky;top:0;z-index:20">
+      <div style="display:flex;flex-direction:column;align-items:center;padding:8px 6px 5px;gap:3px">
+        <span style="font-size:1.9rem;line-height:1">${avEl}</span>
+        <span style="font-size:.95rem;color:var(--txt);font-weight:500">${c.name}</span>
+      </div>
+    </th>`;
+  }
+  th += '</tr>';
+
+  // ── TBODY: 날짜별 1행 ──
+  let tb = '<tr><td style="background:var(--sur);font-size:.88rem;color:var(--dim);text-align:center;border-right:2px solid var(--brd);padding:8px 4px">kg</td>';
+  for (const c of vc) {
+    const cache = S.wCache[date+'-'+c.id] || {_sbid:null,weight:null};
+    const v = cache.weight != null ? cache.weight : '';
+    const pr = prevMap[c.id];
+    const prevStr = pr != null ? `<span style="font-size:.68rem;color:var(--dim);opacity:.6;margin-right:3px;flex-shrink:0">${pr}</span>` : '';
+    tb += `<td style="padding:3px 4px;border-right:1px solid var(--brd);background:var(--bg)">
+      <div style="display:flex;align-items:center">
+        ${prevStr}
+        <input type="number" step="0.1" min="0" max="300"
+          id="wi-${c.id}"
+          value="${v}"
+          inputmode="decimal"
+          placeholder="kg"
+          onfocus="if(this.value===''){}; this.style.color='var(--txt)'"
+          oninput="onWeightInput('${c.id}',this.value)"
+          style="background:transparent;border:none;color:${v?'var(--txt)':'var(--sur3)'};font-size:1.3rem;font-family:var(--fT);text-align:center;padding:7px 2px;width:100%;outline:none;-webkit-appearance:none;flex:1;min-width:0">
+      </div>
+    </td>`;
+  }
+  tb += '</tr>';
+
+  // ── TFOOT: 변화량 ──
+  let tf = '<tr style="background:var(--sur2);border-top:2px solid var(--brd)"><td style="font-size:.8rem;color:var(--dim);text-align:center;padding:8px 4px;border-right:2px solid var(--brd)">변화</td>';
+  for (const c of vc) {
+    const cache = S.wCache[date+'-'+c.id] || {weight:null};
+    const pr = prevMap[c.id];
+    let diffStr = '-';
+    let diffColor = 'var(--dim)';
+    if (cache.weight != null && pr != null) {
+      const diff = (parseFloat(cache.weight) - parseFloat(pr)).toFixed(1);
+      if (diff > 0) { diffStr = `+${diff}kg`; diffColor = 'var(--red)'; }
+      else if (diff < 0) { diffStr = `${diff}kg`; diffColor = 'var(--run)'; }
+      else { diffStr = '±0'; diffColor = 'var(--dim)'; }
+    }
+    tf += `<td id="wdiff-${c.id}" style="font-family:var(--fT);font-size:.95rem;color:${diffColor};text-align:center;padding:8px 4px;border-right:1px solid var(--brd)">${diffStr}</td>`;
+  }
+  tf += '</tr>';
+
+  document.getElementById('weight-thead').innerHTML = th;
+  document.getElementById('weight-tbody').innerHTML = tb;
+  document.getElementById('weight-tfoot').innerHTML = tf;
+}
+
+let wSaveTimer = {};
+async function onWeightInput(charId, val) {
+  const date = wDate;
+  const key = date+'-'+charId;
+  const n = val==='' ? null : parseFloat(val);
+  if (!S.wCache[key]) S.wCache[key] = {_sbid:null, weight:null};
+  S.wCache[key].weight = n;
+  // debounce 1초 후 저장
+  if (wSaveTimer[key]) clearTimeout(wSaveTimer[key]);
+  wSaveTimer[key] = setTimeout(async()=>{
+    if (n===null) return;
+    const newId = await saveWeight({date, charId, weight:n, _sbid:S.wCache[key]._sbid});
+    if (!S.wCache[key]._sbid) S.wCache[key]._sbid = newId;
+    // 변화량 업데이트
+    buildWeightTable(date);
+  }, 800);
+}
+
+// ===================== Weight Chart =====================
+let wCharts = [];
+
+function setWP(p,el) {
+  S.wP=p;
+  document.querySelectorAll('#wc-ptabs .ptab').forEach(t=>t.className='ptab');
+  el.classList.add('ar');
+  const dr=document.getElementById('wdr');
+  p==='custom'?dr.classList.add('show'):dr.classList.remove('show');
+  if(p!=='custom') renderWeightCharts();
+}
+function applyWR(){
+  const s=document.getElementById('wds').value,e=document.getElementById('wde').value;
+  if(!s||!e){toast('날짜 선택');return;}
+  S.wRange={start:s,end:e}; renderWeightCharts();
+}
+
+async function renderWeightCharts() {
+  const wrap = document.getElementById('weight-charts-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="no-data">불러오는 중...</div>';
+
+  const allW = await getAllWeights().catch(()=>[]);
+  const range = (() => {
+    const e=today();
+    if (S.wP==='week'){const d=new Date();d.setDate(d.getDate()-6);return{start:d.toISOString().slice(0,10),end:e};}
+    if (S.wP==='month'){const d=new Date();d.setDate(d.getDate()-29);return{start:d.toISOString().slice(0,10),end:e};}
+    if (S.wRange) return S.wRange;
+    const d=new Date();d.setDate(d.getDate()-6);return{start:d.toISOString().slice(0,10),end:e};
+  })();
+  const dates = dIn(range.start, range.end);
+  const labels = dates.map(fmtD);
+
+  // destroy old charts
+  wCharts.forEach(c=>{try{c.destroy();}catch(e){}});
+  wCharts=[];
+
+  const vc = S.characters.filter(c=>!c.hidden);
+  let html = '';
+  vc.forEach((c,ci)=>{
+    html += `<div class="chart-card" style="margin-bottom:0" id="wcard-${c.id}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:1.8rem">${c.img?'🧑':c.av}</span>
+        <span style="font-family:var(--fT);font-size:1rem;color:var(--run)">${c.name}</span>
+        <span id="wdelta-${c.id}" style="font-size:.82rem;margin-left:auto"></span>
+      </div>
+      <div class="chart-wrap"><canvas id="wchart-${c.id}"></canvas></div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+
+  // render each chart
+  vc.forEach((c,ci)=>{
+    const data = dates.map(d=>{
+      const rec = allW.find(r=>r.charId===c.id && r.date===d);
+      return rec ? rec.weight : null;
+    });
+
+    // 기간 내 체중 변화 계산
+    const validData = data.filter(v=>v!=null);
+    const deltaEl = document.getElementById('wdelta-'+c.id);
+    if (deltaEl && validData.length>=2) {
+      const diff = (validData[validData.length-1] - validData[0]).toFixed(1);
+      if (diff < 0) {
+        deltaEl.innerHTML = `<span style="color:var(--run)">총 ${diff}kg 감량 🎉</span><br><span style="font-size:.75rem;color:var(--dim)">"참 잘하셨습니다 🌟👏"</span>`;
+      } else if (diff > 0) {
+        deltaEl.innerHTML = `<span style="color:var(--red)">+${diff}kg 증가 😡</span><br><span style="font-size:.75rem;color:var(--dim)">"점점 뚱뚱해지네요!!! 😤🔥"</span>`;
+      } else {
+        deltaEl.innerHTML = `<span style="color:var(--dim)">변화 없음 😐</span>`;
+      }
+    } else if (deltaEl) {
+      deltaEl.innerHTML = '';
+    }
+
+    const ctx = document.getElementById('wchart-'+c.id);
+    if (!ctx) return;
+    const chart = new Chart(ctx.getContext('2d'), {
+      type:'line',
+      data:{labels, datasets:[{
+        label:'체중(kg)', data,
+        borderColor:'#00e5ff', backgroundColor:'rgba(0,229,255,.09)',
+        pointBackgroundColor: data.map((v,i)=>i===data.length-1?'#ffffff':'#00e5ff'),
+        pointRadius: data.map((v,i)=>v!=null?(i===data.length-1?7:4):0),
+        pointBorderColor:'#00e5ff', pointBorderWidth:2,
+        tension:.35, fill:true, spanGaps:true,
+      }]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        layout:{padding:{top:20}},
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:v=>`${v.raw}kg`}}},
+        scales:{
+          x:{ticks:{color:'#8888bb',font:{size:10}},grid:{color:'#1f1f2e'}},
+          y:{ticks:{color:'#8888bb',font:{size:10},callback:v=>`${v}kg`},grid:{color:'#1f1f2e'},beginAtZero:false}
+        }
+      },
+      plugins:[todayLabelPlugin]
+    });
+    if (chart.data.datasets[0]) {
+      const ti = dates.indexOf(today());
+      chart.data.datasets[0]._todayIdx = ti;
+      chart.data.datasets[0]._color = '#00e5ff';
+    }
+    wCharts.push(chart);
+  });
+}
+
 // ===================== Init =====================
 async function init() {
   // 1. 날짜 입력 기본값 세팅
   const t=today(), wa=new Date(); wa.setDate(wa.getDate()-6);
   const waStr = wa.toISOString().slice(0,10);
-  ['rds','jds'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=waStr;});
-  ['rde','jde'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t;});
+  ['rds','jds','wds'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=waStr;});
+  ['rde','jde','wde'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t;});
 
   // 2. Supabase 스크립트 로드
   const sbOk = await loadSBScript();
