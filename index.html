@@ -635,6 +635,8 @@ function idbAll(s)     { return new Promise((r,j)=>{ const q=idbStore(s).getAll(
 function idbClear(s)   { return new Promise((r,j)=>{ const q=idbStore(s,'readwrite').clear(); q.onsuccess=()=>r(); q.onerror=()=>j(q.error); }); }
 
 // ===================== Supabase =====================
+const DEFAULT_SB_URL = 'https://lzprhpcunmjgiaaescbx.supabase.co';
+const DEFAULT_SB_KEY = 'sb_publishable_d-BpiXS3l96MHxtIsfbWGQ_VrIJdNAg';
 let SB = null;
 async function loadSBScript() {
   if (window.supabase) return true;
@@ -1771,25 +1773,24 @@ async function init() {
   ['rds','jds'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=waStr;});
   ['rde','jde'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t;});
 
-  // Auto-reconnect Supabase (no test query)
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key) {
-    document.getElementById('sb-url').value = url;
-    document.getElementById('sb-key').value = key;
-    const ok = await loadSBScript();
-    if (ok) {
-      try {
-        SB = window.supabase.createClient(url, key, {
-          global: { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } },
-          auth: { persistSession: false, autoRefreshToken: false }
-        });
-        showScreen('home');
-        return;
-      } catch(e) { SB=null; }
-    }
+  // Auto-connect: 저장된 키 > 기본 키 순서로 시도, 설정화면 없이 바로 홈으로
+  const url = localStorage.getItem('sb_url') || DEFAULT_SB_URL;
+  const key = localStorage.getItem('sb_key') || DEFAULT_SB_KEY;
+  try { document.getElementById('sb-url').value = url; } catch(e){}
+  try { document.getElementById('sb-key').value = key; } catch(e){}
+  const sbOk = await loadSBScript();
+  if (sbOk) {
+    try {
+      SB = window.supabase.createClient(url, key, {
+        global: { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } },
+        auth: { persistSession: false, autoRefreshToken: false }
+      });
+      localStorage.setItem('sb_url', url);
+      localStorage.setItem('sb_key', key);
+    } catch(e) { SB = null; }
   }
-  showScreen('setup');
+  // 성공/실패 모두 설정화면 없이 바로 홈으로
+  showScreen('home');
 }
 
 init().then(()=>{ applyPageLogos(); });
