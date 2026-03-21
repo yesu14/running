@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>운동 기록기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+:root{
+  --bg:#0c0c14;--sur:#161622;--sur2:#1f1f2e;--sur3:#28283a;
+  --run:#00e5ff;--jmp:#ff6b35;--txt:#f0f0ff;--dim:#8888bb;
+  --brd:#2a2a42;--red:#ff4455;
+  --fT:'Black Han Sans',sans-serif;--fB:'Noto Sans KR',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--fB);max-width:430px;margin:0 auto;min-height:100dvh;overflow-x:hidden;font-size:16px}
+.screen{display:none;flex-direction:column;min-height:100dvh}
+.screen.active{display:flex}
+
+.hdr{background:var(--sur);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--brd);position:sticky;top:0;z-index:50;flex-shrink:0}
+.hdr-title{font-family:var(--fT);font-size:1.25rem;letter-spacing:.04em}
+.hbtn{background:var(--sur2);border:1px solid var(--brd);color:var(--dim);padding:8px 15px;border-radius:10px;font-size:.95rem;cursor:pointer;font-family:var(--fB);transition:all .15s}
+.hbtn:active{transform:scale(.94)}
+.fsbtn{background:none;border:1px solid var(--brd);border-radius:9px;padding:5px 11px;font-size:1.1rem;color:var(--dim);cursor:pointer}
+
+/* ── HOME ── */
+#screen-home{justify-content:center;align-items:center;gap:24px;padding:40px 20px;background:radial-gradient(ellipse at 50% 5%,rgba(0,229,255,.07) 0%,transparent 65%)}
+.logo{font-family:var(--fT);font-size:2.2rem;color:var(--run);letter-spacing:.1em}
+.home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:340px}
+.hcard{background:var(--sur);border:1px solid var(--brd);border-radius:22px;padding:32px 16px;display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.hcard::after{content:'';position:absolute;inset:0;border-radius:22px;opacity:0;transition:opacity .2s}
+.hcard.run::after{background:radial-gradient(circle,rgba(0,229,255,.18),transparent 70%)}
+.hcard.jmp::after{background:radial-gradient(circle,rgba(255,107,53,.18),transparent 70%)}
+.hcard:active::after{opacity:1}
+.hcard:active{transform:scale(.95)}
+.hcard-icon{font-size:3.4rem}
+.hcard-name{font-family:var(--fT);font-size:1.3rem}
+.hcard.run .hcard-name{color:var(--run)}
+.hcard.jmp .hcard-name{color:var(--jmp)}
+.home-row{display:flex;gap:12px}
+.hrow-btn{background:var(--sur);border:1px solid var(--brd);border-radius:14px;padding:12px 22px;font-size:.95rem;color:var(--dim);cursor:pointer;font-family:var(--fB);transition:all .15s;display:flex;align-items:center;gap:7px}
+.hrow-btn:active{transform:scale(.95);background:var(--sur2)}
+
+/* ── SETUP ── */
+#screen-setup{justify-content:center;align-items:center;padding:30px 20px;background:var(--bg)}
+.setup-box{background:var(--sur);border:1px solid var(--brd);border-radius:20px;padding:28px 22px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.setup-title{font-family:var(--fT);font-size:1.5rem;color:var(--run);text-align:center}
+.setup-sub{font-size:.9rem;color:var(--dim);text-align:center;line-height:1.65}
+.setup-lbl{font-size:.82rem;color:var(--dim);margin-bottom:-8px}
+.setup-inp{width:100%;background:var(--sur2);border:1px solid var(--brd);border-radius:11px;color:var(--txt);padding:13px 14px;font-size:.95rem;font-family:var(--fB);outline:none}
+.setup-inp:focus{border-color:var(--run)}
+.setup-btn{background:var(--run);border:none;border-radius:12px;color:#000;padding:14px;font-size:1rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em}
+.setup-skip{font-size:.88rem;color:var(--dim);text-align:center;cursor:pointer;padding:2px}
+
+/* ── COURSE SELECT ── */
+#screen-course{background:var(--bg)}
+.course-list{flex:1;display:flex;flex-direction:column;padding:18px;gap:10px;overflow-y:auto}
+.cbtn{background:var(--sur);border:1px solid var(--brd);border-radius:16px;padding:20px 22px;font-family:var(--fT);font-size:1.2rem;color:var(--txt);cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:14px}
+.cbtn:active{transform:scale(.97);border-color:var(--run);background:rgba(0,229,255,.06)}
+.cdot{width:9px;height:9px;border-radius:50%;background:var(--run);opacity:.6;flex-shrink:0}
+
+/* ── RUN ── */
+#screen-run{background:radial-gradient(ellipse at 50% 35%,rgba(0,229,255,.05) 0%,transparent 65%)}
+.run-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:22px 20px 36px}
+.run-pill{display:flex;align-items:center;gap:8px;background:rgba(0,229,255,.09);border:1px solid rgba(0,229,255,.25);border-radius:22px;padding:8px 16px;font-size:.95rem;color:var(--run);cursor:pointer}
+.rpill-dot{width:7px;height:7px;border-radius:50%;background:var(--run);animation:rpulse 1.5s infinite}
+@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.runner-wrap{height:80px;display:flex;align-items:center;justify-content:center;position:relative;width:210px}
+.runner-svg{width:58px;height:58px;filter:drop-shadow(0 0 10px rgba(0,229,255,.55));animation:rbob .44s ease-in-out infinite alternate}
+@keyframes rbob{0%{transform:translateY(0) rotate(-1deg)}100%{transform:translateY(-10px) rotate(1deg)}}
+.slines{position:absolute;left:4px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.sl{height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(0,229,255,.5));animation:sfx .6s linear infinite}
+.sl:nth-child(1){width:30px}.sl:nth-child(2){width:20px;animation-delay:-.2s}.sl:nth-child(3){width:13px;animation-delay:-.4s}
+@keyframes sfx{0%{opacity:0;transform:translateX(8px)}50%{opacity:1}100%{opacity:0;transform:translateX(-16px)}}
+.circle-area{position:relative;display:flex;align-items:center;justify-content:center}
+.tap-circle{width:240px;height:240px;border-radius:50%;border:3px solid var(--run);background:radial-gradient(circle at 40% 35%,rgba(0,229,255,.15),rgba(0,229,255,.03) 70%);box-shadow:0 0 40px rgba(0,229,255,.15),inset 0 0 40px rgba(0,229,255,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;position:relative;overflow:hidden;transition:all .12s}
+.tap-circle:active{transform:scale(.95)}
+.tap-circle.cd{border-color:#252545;box-shadow:none;cursor:default}
+.bignum{font-family:var(--fT);font-size:clamp(5rem,20vw,8rem);color:var(--run);line-height:1;text-shadow:0 0 50px rgba(0,229,255,.42)}
+.tap-circle.cd .bignum{color:#2e2e4a;text-shadow:none}
+.unit-lbl{font-size:1.05rem;color:var(--dim);letter-spacing:.12em;margin-top:3px}
+.tap-circle.cd .unit-lbl{color:#2e2e4a}
+.cd-svg{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);pointer-events:none;display:none}
+.tap-circle.cd .cd-svg{display:block}
+.cd-track{fill:none;stroke:#222238;stroke-width:3}
+.cd-prog{fill:none;stroke:var(--run);stroke-width:3;stroke-linecap:round;stroke-dasharray:754;stroke-dashoffset:754;transition:stroke-dashoffset 1s linear}
+@keyframes nbump{0%{transform:scale(1)}35%{transform:scale(1.18)}100%{transform:scale(1)}}
+.bignum.bump{animation:nbump .26s ease-out}
+.recent-strip{position:absolute;right:-82px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
+.rlap{font-family:var(--fT);font-size:1.35rem;color:#ff6b35;line-height:1}
+.rlap:nth-child(2){font-size:1.1rem;opacity:.62}.rlap:nth-child(3){font-size:.95rem;opacity:.38}
+.rlap-u{font-family:var(--fB);font-size:.6rem;color:var(--dim);margin-left:2px}
+.cd-label{font-size:.88rem;color:var(--dim);min-height:18px;text-align:center}
+.run-ctrls{display:flex;gap:14px}
+.rctrl{background:var(--sur);border:1px solid var(--brd);border-radius:13px;padding:12px 24px;font-family:var(--fB);font-size:.95rem;color:var(--dim);cursor:pointer;transition:all .15s}
+.rctrl:active{transform:scale(.95)}
+.rctrl.d{color:var(--red);border-color:rgba(255,68,85,.3)}
+
+/* ── JUMP ── */
+#screen-jump{background:var(--bg)}
+.jump-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.jump-top{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 6px;flex-shrink:0;background:var(--bg)}
+.jfig{font-size:2rem;animation:jbob .52s ease-in-out infinite;filter:drop-shadow(0 0 8px rgba(255,107,53,.45))}
+@keyframes jbob{0%,100%{transform:translateY(3px)}45%{transform:translateY(-14px)}}
+.jump-date{font-size:.9rem;color:var(--dim)}
+
+/* Table container must have explicit height */
+.jtable-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+
+/* Table */
+.jtable{border-collapse:collapse;width:100%;table-layout:fixed}
+.jtable thead tr{background:var(--sur2)}
+.jtable thead th{background:var(--sur2);padding:0;border-bottom:2px solid var(--brd);position:sticky;top:0;z-index:20;text-align:center;vertical-align:bottom}
+.jtable thead th:first-child{width:36px;border-right:2px solid var(--brd);font-size:.88rem;color:var(--dim);padding:10px 4px}
+.char-th-in{display:flex;flex-direction:column;align-items:center;padding:8px 6px 5px;gap:4px;border-right:1px solid var(--brd)}
+.char-av{font-size:2rem;cursor:pointer;line-height:1;transition:transform .15s;display:block;text-align:center}
+.char-av img{width:36px;height:36px;border-radius:50%;object-fit:cover;display:block;margin:0 auto}
+.char-av:active{transform:scale(.88)}
+.char-nm{font-size:1rem;color:var(--txt);font-weight:500;cursor:pointer;padding:2px 8px;border-radius:6px;transition:background .15s;text-align:center}
+.char-nm:active{background:var(--sur3)}
+.char-tot{font-family:var(--fT);font-size:1rem;color:var(--jmp);text-align:center}
+.char-tot span{font-size:.65rem;color:var(--dim);font-family:var(--fB)}
+.hide-btn{background:none;border:1px solid var(--brd);border-radius:6px;font-size:.78rem;color:var(--dim);cursor:pointer;padding:3px 10px;font-family:var(--fB);transition:all .13s;margin-top:2px;white-space:nowrap}
+.hide-btn:active{color:var(--red);border-color:var(--red)}
+
+/* body rows */
+.jtable tbody tr{border-bottom:1px solid var(--brd)}
+.jtable tbody tr:last-child{border-bottom:none}
+.rn-cell{font-size:.9rem;color:var(--dim);text-align:center;border-right:2px solid var(--brd);padding:6px 4px;width:36px;background:var(--sur)}
+.val-td{padding:4px 5px;border-right:1px solid var(--brd);background:var(--bg)}
+.val-td:last-child{border-right:none}
+.prev-h{font-size:.72rem;color:var(--dim);opacity:.7;text-align:center;display:block;line-height:1.2;min-height:14px}
+.jinp{background:transparent;border:none;color:var(--txt);font-size:1.3rem;font-family:var(--fT);text-align:center;padding:7px 4px;width:100%;outline:none;-webkit-appearance:none;display:block}
+.jinp:focus{background:rgba(255,107,53,.1);border-radius:8px}
+.jinp.zv{color:var(--sur3)}
+.jinp.hv{color:var(--txt)}
+
+/* footer */
+.jtable tfoot tr{background:var(--sur2)}
+.jtable tfoot td{padding:10px 4px;text-align:center;border-top:2px solid var(--brd);border-right:1px solid var(--brd)}
+.jtable tfoot td:first-child{border-right:2px solid var(--brd);font-size:.9rem;color:var(--dim)}
+.jtable tfoot td:last-child{border-right:none}
+.fsum{font-family:var(--fT);font-size:1.15rem;color:var(--jmp)}
+
+/* ── MENU ── */
+#screen-menu{background:var(--bg);overflow-y:auto}
+.menu-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
+.mgrp{background:var(--sur);border:1px solid var(--brd);border-radius:15px;overflow:hidden}
+.mgrp-ttl{padding:10px 16px;font-size:.78rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid var(--brd)}
+.mitem{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .13s}
+.mitem:last-child{border-bottom:none}
+.mitem:active{background:var(--sur2)}
+.mitem-l{display:flex;align-items:center;gap:12px;font-size:1rem}
+.mico{font-size:1.2rem}
+.marr{color:var(--dim)}
+
+/* ── COURSE MANAGE ── */
+#screen-courses{background:var(--bg);overflow-y:auto}
+.cmanage-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px}
+.citem{background:var(--sur);border:1px solid var(--brd);border-radius:13px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.citem-name{font-size:1rem;display:flex;align-items:center;gap:8px}
+.citem-btns{display:flex;gap:7px}
+.cibtn{background:var(--sur2);border:1px solid var(--brd);border-radius:9px;padding:6px 12px;font-size:.88rem;color:var(--dim);cursor:pointer;font-family:var(--fB);transition:all .13s}
+.cibtn.del{color:var(--red);border-color:rgba(255,68,85,.3)}
+.cibtn:active{transform:scale(.92)}
+.add-row{background:rgba(0,229,255,.05);border:1.5px dashed rgba(0,229,255,.3);border-radius:13px;padding:15px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--run);font-family:var(--fT);font-size:1rem;transition:all .17s}
+.add-row:active{background:rgba(0,229,255,.12);transform:scale(.97)}
+
+/* ── EDIT DATA ── */
+#screen-editdata{background:var(--bg);overflow-y:auto}
+.ed-body{flex:1;padding:14px;display:flex;flex-direction:column;gap:12px}
+.add-rec-btn{background:rgba(255,107,53,.07);border:1.5px dashed rgba(255,107,53,.35);border-radius:13px;padding:15px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;color:var(--jmp);font-family:var(--fT);font-size:1rem;transition:all .17s}
+.add-rec-btn:active{background:rgba(255,107,53,.14);transform:scale(.97)}
+.date-grp{background:var(--sur);border:1px solid var(--brd);border-radius:15px;overflow:hidden;margin-bottom:0}
+.dg-hdr{padding:11px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;background:var(--sur2)}
+.dg-date{font-family:var(--fT);font-size:1rem;color:var(--txt)}
+.ed-row{padding:13px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px}
+.ed-row:last-child{border-bottom:none}
+.ed-badge{border-radius:8px;padding:4px 10px;font-size:.82rem;flex-shrink:0}
+.ed-badge.run{color:var(--run);border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.07)}
+.ed-badge.jmp{color:var(--jmp);border:1px solid rgba(255,107,53,.3);background:rgba(255,107,53,.07)}
+.ed-info{flex:1;display:flex;flex-direction:column;gap:2px}
+.ed-sub{font-size:.88rem;color:var(--dim)}
+.ed-val{font-family:var(--fT);font-size:1.2rem;color:var(--run);padding:0 8px;white-space:nowrap}
+.ed-val.j{color:var(--jmp)}
+.ed-acts{display:flex;gap:6px}
+.edbtn{background:var(--sur2);border:1px solid var(--brd);border-radius:9px;padding:7px 12px;font-size:.88rem;color:var(--dim);cursor:pointer;font-family:var(--fB);transition:all .13s}
+.edbtn.del{color:var(--red);border-color:rgba(255,68,85,.3)}
+.edbtn:active{transform:scale(.92)}
+
+/* ── CHARTS ── */
+#screen-charts{overflow-y:auto}
+.charts-body{flex:1;padding:14px;display:flex;flex-direction:column;gap:14px}
+.chart-card{background:var(--sur);border:1px solid var(--brd);border-radius:15px;padding:16px}
+.ctitle{font-family:var(--fT);font-size:1.1rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ctitle.r{color:var(--run)}.ctitle.j{color:var(--jmp)}
+.ptabs{display:flex;gap:6px;margin-bottom:10px}
+.ptab{flex:1;background:var(--sur2);border:1px solid var(--brd);border-radius:10px;padding:8px 4px;font-size:.88rem;color:var(--dim);cursor:pointer;text-align:center;font-family:var(--fB);transition:all .14s}
+.ptab.ar{background:rgba(0,229,255,.1);border-color:var(--run);color:var(--run)}
+.ptab.aj{background:rgba(255,107,53,.1);border-color:var(--jmp);color:var(--jmp)}
+.drange{display:none;gap:6px;margin-bottom:10px;align-items:center}
+.drange.show{display:flex}
+.dtinp{flex:1;background:var(--sur2);border:1px solid var(--brd);border-radius:10px;color:var(--txt);padding:7px 9px;font-size:.88rem;font-family:var(--fB);outline:none}
+.dtinp:focus{border-color:var(--run)}
+.applybtn{background:rgba(0,229,255,.1);border:1px solid var(--run);border-radius:10px;color:var(--run);padding:7px 12px;font-size:.88rem;cursor:pointer;font-family:var(--fB)}
+.chart-wrap{position:relative;height:185px}
+
+/* ── MODAL ── */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.moverlay.show{display:flex}
+.modal{background:var(--sur);border:1px solid var(--brd);border-radius:24px 24px 0 0;padding:22px 20px 40px;width:100%;max-width:430px;animation:sUp .26s ease-out;max-height:88dvh;overflow-y:auto}
+@keyframes sUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-ttl{font-family:var(--fT);font-size:1.2rem;margin-bottom:16px}
+.minp{width:100%;background:var(--sur2);border:1px solid var(--brd);border-radius:12px;color:var(--txt);padding:12px 14px;font-size:1rem;font-family:var(--fB);margin-bottom:11px;outline:none}
+.minp:focus{border-color:var(--run)}
+.msel{width:100%;background:var(--sur2);border:1px solid var(--brd);border-radius:12px;color:var(--txt);padding:12px 14px;font-size:1rem;font-family:var(--fB);margin-bottom:11px;outline:none;cursor:pointer}
+.mbtns{display:flex;gap:10px;margin-top:4px}
+.mbtn{flex:1;border:none;border-radius:12px;padding:13px;font-size:1rem;font-family:var(--fB);font-weight:700;cursor:pointer;transition:all .14s}
+.mbtn:active{transform:scale(.96)}
+.mbtn.cancel{background:var(--sur2);color:var(--dim)}
+.mbtn.ok{background:var(--run);color:#000}
+.mbtn.ok-o{background:var(--jmp);color:#fff}
+.mbtn.ok-d{background:var(--red);color:#fff}
+
+/* Jump edit table in modal */
+.je-table{border-collapse:collapse;width:100%;margin-bottom:14px}
+.je-table th,.je-table td{border:1px solid var(--brd);padding:7px 8px;text-align:center}
+.je-table th{background:var(--sur2);font-size:.88rem;color:var(--dim);font-weight:500}
+.je-table td:first-child{font-size:.88rem;color:var(--dim);background:var(--sur);width:50px}
+.je-inp{background:var(--sur2);border:none;color:var(--txt);font-size:1.15rem;font-family:var(--fT);text-align:center;padding:6px 4px;width:80px;border-radius:7px;outline:none;-webkit-appearance:none}
+.je-inp:focus{background:rgba(255,107,53,.12)}
+
+/* Avatar picker */
+.av-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;max-height:240px;overflow-y:auto}
+.av-opt{aspect-ratio:1;border-radius:50%;background:var(--sur2);border:2px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;transition:all .13s;line-height:1}
+.av-opt img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.av-opt.sel{border-color:var(--jmp);transform:scale(1.1);box-shadow:0 0 10px rgba(255,107,53,.3)}
+.av-upload{width:100%;background:var(--sur2);border:1px dashed var(--brd);border-radius:11px;padding:11px;color:var(--dim);font-size:.9rem;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:center;font-family:var(--fB)}
+.av-upload:active{border-color:var(--jmp)}
+.av-sec{font-size:.75rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin:8px 0 5px;padding-left:2px}
+
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(18px);background:rgba(22,22,34,.96);border:1px solid var(--brd);border-radius:12px;padding:10px 20px;font-size:.9rem;color:var(--txt);z-index:300;opacity:0;transition:all .26s;white-space:nowrap;backdrop-filter:blur(8px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.no-data{text-align:center;color:var(--dim);font-size:.9rem;padding:26px}
+::-webkit-scrollbar{width:2px;height:2px}
+::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+select option{background:var(--sur2);color:var(--txt)}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen">
+  <div class="setup-box">
+    <div class="setup-title">💪 운동 기록기</div>
+    <div class="setup-sub">Supabase에 연결하면 데이터가 클라우드에 저장돼요.<br>나중에 메뉴에서도 설정할 수 있어요.</div>
+    <div class="setup-lbl">Supabase URL</div>
+    <input class="setup-inp" id="sb-url" placeholder="https://xxx.supabase.co">
+    <div class="setup-lbl">Supabase Anon Key</div>
+    <input class="setup-inp" id="sb-key" placeholder="eyJhbGci...">
+    <button class="setup-btn" onclick="connectSB()">연결하기</button>
+    <div class="setup-skip" onclick="skipSetup()">건너뛰기 (기기 저장만 사용)</div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="screen-home" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:24px;background:radial-gradient(ellipse at 50% 5%,rgba(0,229,255,.07) 0%,transparent 65%)">
+    <div class="logo">💪 운동 기록기</div>
+    <div class="home-cards">
+      <div class="hcard run" onclick="goRunFlow()"><div class="hcard-icon">🏃</div><div class="hcard-name">달리기</div></div>
+      <div class="hcard jmp" onclick="goJump()"><div class="hcard-icon">🤸</div><div class="hcard-name">줄넘기</div></div>
+    </div>
+    <div class="home-row">
+      <div class="hrow-btn" onclick="showScreen('charts')">📊 차트</div>
+      <div class="hrow-btn" onclick="showScreen('menu')">☰ 메뉴</div>
+    </div>
+  </div>
+</div>
+
+<!-- COURSE SELECT -->
+<div id="screen-course" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('home')">← 홈</button>
+    <span class="hdr-title" style="color:var(--run)">코스 선택</span>
+    <button class="fsbtn" onclick="toggleFS()">⛶</button>
+  </div>
+  <div class="course-list" id="course-list"></div>
+</div>
+
+<!-- RUN -->
+<div id="screen-run" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('course');renderCourseList()">← 코스</button>
+    <span class="hdr-title" style="color:var(--run)">🏃 달리기</span>
+    <button class="fsbtn" onclick="toggleFS()">⛶</button>
+  </div>
+  <div class="run-body">
+    <div class="run-pill" onclick="showScreen('course');renderCourseList()">
+      <div class="rpill-dot"></div><span id="run-course-lbl">코스</span>
+    </div>
+    <div class="runner-wrap">
+      <div class="slines"><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
+      <svg class="runner-svg" viewBox="0 0 54 54" fill="none">
+        <circle cx="27" cy="9" r="5.5" fill="#00e5ff" opacity=".9"/>
+        <line x1="27" y1="14.5" x2="27" y2="31" stroke="#00e5ff" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="27" y1="19" x2="15" y2="27" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 27 19;22 27 19;0 27 19" dur="0.45s" repeatCount="indefinite"/></line>
+        <line x1="27" y1="19" x2="39" y2="27" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 27 19;-22 27 19;0 27 19" dur="0.45s" repeatCount="indefinite"/></line>
+        <line x1="27" y1="31" x2="16" y2="46" stroke="#00e5ff" stroke-width="3.5" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="-28 27 31;28 27 31;-28 27 31" dur="0.45s" repeatCount="indefinite"/></line>
+        <line x1="27" y1="31" x2="38" y2="46" stroke="#00e5ff" stroke-width="3.5" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="28 27 31;-28 27 31;28 27 31" dur="0.45s" repeatCount="indefinite"/></line>
+      </svg>
+    </div>
+    <div class="circle-area">
+      <div class="tap-circle" id="tap-circle" onclick="handleTap()">
+        <svg class="cd-svg" viewBox="0 0 260 260"><circle class="cd-track" cx="130" cy="130" r="120"/><circle class="cd-prog" id="cd-prog" cx="130" cy="130" r="120" transform="rotate(-90 130 130)"/></svg>
+        <div class="bignum" id="bignum">0</div>
+        <div class="unit-lbl">바퀴</div>
+      </div>
+      <div class="recent-strip" id="recent-strip"></div>
+    </div>
+    <div class="cd-label" id="cd-label"></div>
+    <div class="run-ctrls">
+      <button class="rctrl" onclick="editRun()">✏️ 수정</button>
+      <button class="rctrl d" onclick="resetRun()">🗑 리셋</button>
+    </div>
+  </div>
+</div>
+
+<!-- JUMP -->
+<div id="screen-jump" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('home')">← 홈</button>
+    <span class="hdr-title" style="color:var(--jmp)">🤸 줄넘기</span>
+    <button class="fsbtn" onclick="toggleFS()">⛶</button>
+  </div>
+  <div class="jump-body">
+    <div class="jump-top">
+      <span class="jfig" id="jfig">🧑</span>
+      <span class="jump-date" id="jump-date-lbl"></span>
+    </div>
+    <!-- Scroll wrapper must be a block with overflow -->
+    <div class="jtable-scroll" id="jtable-scroll">
+      <table class="jtable" id="jtable">
+        <thead id="jthead"></thead>
+        <tbody id="jtbody"></tbody>
+        <tfoot id="jtfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div id="screen-charts" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('home')">← 홈</button>
+    <span class="hdr-title">📊 차트</span>
+    <button class="hbtn" onclick="refreshCharts()">↻</button>
+  </div>
+  <div class="charts-body">
+    <div class="chart-card">
+      <div class="ctitle r">🏃 달리기</div>
+      <div class="ptabs">
+        <div class="ptab ar" onclick="setRP('week',this)">주간</div>
+        <div class="ptab" onclick="setRP('month',this)">월간</div>
+        <div class="ptab" onclick="setRP('custom',this)">기간</div>
+      </div>
+      <div class="drange" id="rdr">
+        <input type="date" class="dtinp" id="rds">
+        <span style="color:var(--dim)">~</span>
+        <input type="date" class="dtinp" id="rde">
+        <button class="applybtn" onclick="applyRR()">적용</button>
+      </div>
+      <div class="chart-wrap"><canvas id="rchart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="ctitle j">🤸 줄넘기</div>
+      <div class="ptabs">
+        <div class="ptab aj" onclick="setJP('week',this)">주간</div>
+        <div class="ptab" onclick="setJP('month',this)">월간</div>
+        <div class="ptab" onclick="setJP('custom',this)">기간</div>
+      </div>
+      <div class="drange" id="jdr">
+        <input type="date" class="dtinp" id="jds">
+        <span style="color:var(--dim)">~</span>
+        <input type="date" class="dtinp" id="jde">
+        <button class="applybtn" onclick="applyJR()">적용</button>
+      </div>
+      <div class="chart-wrap"><canvas id="jchart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div id="screen-menu" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('home')">← 홈</button>
+    <span class="hdr-title">☰ 메뉴</span>
+  </div>
+  <div class="menu-body">
+    <div class="mgrp">
+      <div class="mgrp-ttl">달리기</div>
+      <div class="mitem" onclick="showScreen('courses');renderCourseManage()">
+        <div class="mitem-l"><span class="mico">📍</span>코스 관리</div><span class="marr">›</span>
+      </div>
+    </div>
+    <div class="mgrp">
+      <div class="mgrp-ttl">줄넘기</div>
+      <div class="mitem" onclick="showHiddenChars()">
+        <div class="mitem-l"><span class="mico">👁</span>숨긴 캐릭터 복구</div><span class="marr">›</span>
+      </div>
+    </div>
+    <div class="mgrp">
+      <div class="mgrp-ttl">데이터</div>
+      <div class="mitem" onclick="showScreen('editdata');loadEditData()">
+        <div class="mitem-l"><span class="mico">✏️</span>기록 수정/삭제/추가</div><span class="marr">›</span>
+      </div>
+      <div class="mitem" onclick="exportData()">
+        <div class="mitem-l"><span class="mico">📤</span>데이터 내보내기</div><span class="marr">›</span>
+      </div>
+      <div class="mitem" onclick="showScreen('setup')">
+        <div class="mitem-l"><span class="mico">☁️</span>Supabase 설정</div><span class="marr">›</span>
+      </div>
+      <div class="mitem" onclick="confirmClear()">
+        <div class="mitem-l"><span class="mico">🗑</span><span style="color:var(--red)">전체 삭제</span></div><span class="marr" style="color:var(--red)">›</span>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--dim);font-size:.8rem;padding:8px">운동 기록기 v3.0</div>
+  </div>
+</div>
+
+<!-- COURSE MANAGE -->
+<div id="screen-courses" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('menu')">← 메뉴</button>
+    <span class="hdr-title">📍 코스 관리</span>
+  </div>
+  <div class="cmanage-body" id="cmanage-body"></div>
+</div>
+
+<!-- EDIT DATA -->
+<div id="screen-editdata" class="screen">
+  <div class="hdr">
+    <button class="hbtn" onclick="showScreen('menu')">← 메뉴</button>
+    <span class="hdr-title">✏️ 기록 관리</span>
+  </div>
+  <div class="ed-body" id="ed-body"></div>
+</div>
+
+<!-- MODAL -->
+<div class="moverlay" id="moverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-ttl" id="modal-ttl"></div>
+    <div id="modal-body"></div>
+    <div class="mbtns" id="modal-btns"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="av-file" accept="image/*" style="display:none" onchange="handleAvUp(event)">
+
+<script>
+'use strict';
+
+// ===================== IndexedDB =====================
+let _idb;
+function openIDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('FitnessV4', 1);
+    r.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('runs'))
+        d.createObjectStore('runs', {keyPath:'id', autoIncrement:true});
+      if (!d.objectStoreNames.contains('jumps'))
+        d.createObjectStore('jumps', {keyPath:'id', autoIncrement:true});
+      if (!d.objectStoreNames.contains('settings'))
+        d.createObjectStore('settings', {keyPath:'key'});
+    };
+    r.onsuccess  = e => { _idb = e.target.result; res(); };
+    r.onerror    = ()  => { console.warn('IDB failed'); res(); };
+  });
+}
+function idbStore(name, mode) { return _idb.transaction(name, mode).objectStore(name); }
+function idbGet(s, k)  { return new Promise((r,j)=>{ const q=idbStore(s).get(k);        q.onsuccess=()=>r(q.result); q.onerror=()=>j(q.error); }); }
+function idbPut(s, v)  { return new Promise((r,j)=>{ const q=idbStore(s,'readwrite').put(v); q.onsuccess=()=>r(q.result); q.onerror=()=>j(q.error); }); }
+function idbDel(s, k)  { return new Promise((r,j)=>{ const q=idbStore(s,'readwrite').delete(k); q.onsuccess=()=>r(); q.onerror=()=>j(q.error); }); }
+function idbAll(s)     { return new Promise((r,j)=>{ const q=idbStore(s).getAll();       q.onsuccess=()=>r(q.result); q.onerror=()=>j(q.error); }); }
+function idbClear(s)   { return new Promise((r,j)=>{ const q=idbStore(s,'readwrite').clear(); q.onsuccess=()=>r(); q.onerror=()=>j(q.error); }); }
+
+// ===================== Supabase =====================
+let SB = null;
+async function loadSBScript() {
+  if (window.supabase) return true;
+  return new Promise(res => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    s.onload  = () => res(true);
+    s.onerror = () => res(false);
+    document.head.appendChild(s);
+  });
+}
+async function connectSB() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  if (!url || !key) { toast('URL과 Key를 입력해주세요'); return; }
+  if (!url.startsWith('https://')) { toast('URL은 https://로 시작해야 해요'); return; }
+  toast('연결 중...');
+  const ok = await loadSBScript();
+  if (!ok) { toast('스크립트 로드 실패. 인터넷 연결을 확인해주세요'); return; }
+  try {
+    SB = window.supabase.createClient(url, key);
+    // 테이블 접근 테스트 없이 바로 저장 — RLS가 있어도 저장/조회는 정책으로 허용됨
+    localStorage.setItem('sb_url', url);
+    localStorage.setItem('sb_key', key);
+    toast('Supabase 연결됨! ☁️');
+    await loadSettings();
+    showScreen('home');
+  } catch(e) {
+    toast('연결 오류: ' + (e.message||'확인 필요'));
+    SB = null;
+  }
+}
+function skipSetup() {
+  localStorage.removeItem('sb_url');
+  localStorage.removeItem('sb_key');
+  SB = null;
+  loadSettings().then(() => showScreen('home'));
+}
+
+// ===================== DB Abstraction =====================
+function safeRounds(v) {
+  if (!v) return new Array(8).fill(0);
+  if (Array.isArray(v)) {
+    const a = v.map(x => parseInt(x) || 0);
+    while (a.length < 8) a.push(0);
+    return a.slice(0, 8);
+  }
+  try { return safeRounds(JSON.parse(v)); } catch(e) { return new Array(8).fill(0); }
+}
+
+async function getAllRuns() {
+  if (SB) {
+    const {data, error} = await SB.from('fitness_runs').select('*').order('date', {ascending:false});
+    if (error) {
+      console.error('getAllRuns error:', error);
+      if (error.code === '42501' || error.message?.includes('permission')) {
+        toast('Supabase 권한 오류 — SQL Editor에서 RLS 정책을 확인해주세요');
+      }
+      throw error;
+    }
+    return data || [];
+  }
+  if (!_idb) return [];
+  const rows = await idbAll('runs');
+  rows.sort((a,b) => b.date.localeCompare(a.date));
+  return rows;
+}
+
+async function getAllJumps() {
+  if (SB) {
+    const {data, error} = await SB.from('fitness_jumps').select('*').order('date', {ascending:false});
+    if (error) throw error;
+    return (data || []).map(r => ({
+      id:      r.id,
+      date:    r.date,
+      charId:  r.char_id,
+      rounds:  safeRounds(r.rounds),
+      updatedAt: r.updated_at,
+    }));
+  }
+  if (!_idb) return [];
+  const rows = await idbAll('jumps');
+  rows.sort((a,b) => b.date.localeCompare(a.date));
+  return rows.map(r => ({...r, rounds: safeRounds(r.rounds)}));
+}
+
+async function saveRun(rec) {
+  if (SB) {
+    const p = {date:rec.date, course:rec.course||'', laps:rec.laps, ts: Date.now()};
+    if (rec._sbid) {
+      await SB.from('fitness_runs').update(p).eq('id', rec._sbid);
+      return rec._sbid;
+    } else {
+      const {data, error} = await SB.from('fitness_runs').insert(p).select().single();
+      if (error) throw error;
+      return data.id;
+    }
+  }
+  if (!_idb) return null;
+  const r = {date:rec.date, course:rec.course||'', laps:rec.laps, timestamp:Date.now()};
+  if (rec._idbid) r.id = rec._idbid;
+  return await idbPut('runs', r);
+}
+
+async function saveJump(rec) {
+  if (SB) {
+    const p = {date:rec.date, char_id:rec.charId, rounds: JSON.stringify(rec.rounds||[]), updated_at: Date.now()};
+    if (rec._sbid) {
+      await SB.from('fitness_jumps').update(p).eq('id', rec._sbid);
+      return rec._sbid;
+    } else {
+      const {data, error} = await SB.from('fitness_jumps').insert(p).select().single();
+      if (error) throw error;
+      return data.id;
+    }
+  }
+  if (!_idb) return null;
+  const r = {date:rec.date, charId:rec.charId, rounds:rec.rounds||[], updatedAt:Date.now()};
+  if (rec._idbid) r.id = rec._idbid;
+  return await idbPut('jumps', r);
+}
+
+async function deleteRun(id) {
+  if (SB) { await SB.from('fitness_runs').delete().eq('id', id); return; }
+  if (_idb) await idbDel('runs', id);
+}
+async function deleteJump(id) {
+  if (SB) { await SB.from('fitness_jumps').delete().eq('id', id); return; }
+  if (_idb) await idbDel('jumps', id);
+}
+async function clearAll() {
+  if (SB) {
+    await SB.from('fitness_runs').delete().gt('id', 0);
+    await SB.from('fitness_jumps').delete().gt('id', 0);
+    return;
+  }
+  if (_idb) { await idbClear('runs'); await idbClear('jumps'); }
+}
+
+// ===================== Avatars =====================
+const AV_GROUPS = [
+  {label:'가족',      items:['👨','👩','👧','👦','👶','🧑','👴','👵','🧔','👩‍🦱','👨‍🦳']},
+  {label:'동물',      items:['🐶','🐱','🐻','🐼','🦊','🐯','🦁','🐸','🐧','🐨','🦄','🐺','🦝','🐹']},
+  {label:'공주·왕자', items:['👸','🤴','🧚','🧜‍♀️','🧙‍♀️','🧝‍♀️','🦸‍♀️','🦹‍♀️','🧛‍♀️','🧝‍♂️','🪄','🌟']},
+  {label:'스포츠',    items:['🏃','🚴','🏊','⛹️','🤸','🧗','🏋️','⚽','🏀','🥊','🏆','🎽']},
+  {label:'재미',      items:['🎃','👻','🤖','👾','🎅','🧸','🎈','🌈','⭐','🔥','🍕','🍦']},
+];
+
+// ===================== App State =====================
+const S = {
+  courses:    ['실내','실외','운동장'],
+  characters: [
+    {id:'c0', name:'아빠',     av:'👨', img:null, hidden:false},
+    {id:'c1', name:'엄마',     av:'👩', img:null, hidden:false},
+    {id:'c2', name:'귀염둥이', av:'👶', img:null, hidden:false},
+  ],
+  selCourse: '',
+  runRec: {_idbid:null, _sbid:null, laps:0},
+  runCD: false,
+  // jump data cache: key = "date-charId" -> {_idbid, _sbid, rounds[8]}
+  jCache: {},
+  rP:'week', jP:'week',
+  rRange:null, jRange:null,
+  editAvIdx: null, selAv: null,
+};
+
+const today = () => new Date().toISOString().slice(0,10);
+const fmtD  = d => { const x=new Date(d); return `${x.getMonth()+1}/${x.getDate()}`; };
+const fmtF  = d => {
+  const x = new Date(d+'T00:00:00');
+  return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`;
+};
+
+async function saveSettings() {
+  const d = {key:'app', courses:S.courses, characters:S.characters};
+  try { localStorage.setItem('fSettings', JSON.stringify(d)); } catch(e){}
+  try { if (_idb) await idbPut('settings', d); } catch(e){}
+}
+async function loadSettings() {
+  try {
+    const ls = localStorage.getItem('fSettings');
+    if (ls) {
+      const s = JSON.parse(ls);
+      if (s.courses) S.courses = s.courses;
+      if (s.characters) S.characters = s.characters.map(c=>({hidden:false,...c}));
+      return;
+    }
+  } catch(e){}
+  try {
+    if (_idb) {
+      const s = await idbGet('settings','app');
+      if (s) {
+        if (s.courses) S.courses = s.courses;
+        if (s.characters) S.characters = s.characters.map(c=>({hidden:false,...c}));
+      }
+    }
+  } catch(e){}
+}
+
+// ===================== Screen Nav =====================
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  if (n === 'charts') refreshCharts();
+}
+function goRunFlow() { renderCourseList(); showScreen('course'); }
+function goJump()    { showScreen('jump'); renderJumpScreen(); }
+function toggleFS() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+    if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(()=>{});
+  } else document.exitFullscreen().catch(()=>{});
+}
+
+// ===================== Toast / Modal =====================
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2400);
+}
+function openModal(ttl, body, btns) {
+  document.getElementById('modal-ttl').textContent = ttl;
+  document.getElementById('modal-body').innerHTML = body;
+  const be = document.getElementById('modal-btns');
+  be.innerHTML = '';
+  btns.forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'mbtn '+(b.cls||'');
+    el.textContent = b.label;
+    el.onclick = b.fn;
+    be.appendChild(el);
+  });
+  document.getElementById('moverlay').classList.add('show');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('moverlay'))
+    document.getElementById('moverlay').classList.remove('show');
+}
+
+// ===================== Course =====================
+function renderCourseList() {
+  const el = document.getElementById('course-list');
+  if (!S.courses.length) {
+    el.innerHTML = '<div class="no-data">코스가 없어요.<br>메뉴 → 코스 관리에서 추가하세요.</div>';
+    return;
+  }
+  el.innerHTML = S.courses.map(c =>
+    `<div class="cbtn" onclick="selectCourse(${JSON.stringify(c)})"><div class="cdot"></div>${c}</div>`
+  ).join('');
+}
+function selectCourse(c) {
+  S.selCourse = c;
+  document.getElementById('run-course-lbl').textContent = c;
+  initRun();
+  showScreen('run');
+}
+
+// ===================== Run =====================
+let cdInt = null;
+async function initRun() {
+  try {
+    const all = await getAllRuns();
+    const t   = today();
+    const rec = all.find(r => r.date===t && r.course===S.selCourse);
+    if (rec) {
+      S.runRec = {_idbid: SB?null:rec.id, _sbid: SB?rec.id:null, laps:rec.laps};
+    } else {
+      S.runRec = {_idbid:null, _sbid:null, laps:0};
+    }
+    document.getElementById('bignum').textContent = S.runRec.laps;
+    renderRecentStrip(all);
+  } catch(e) { console.error(e); }
+}
+async function handleTap() {
+  if (S.runCD) return;
+  S.runCD = true; S.runRec.laps++;
+  const el = document.getElementById('bignum');
+  el.textContent = S.runRec.laps;
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  try { await saveCurrentRun(); } catch(e) {}
+  const circ = document.getElementById('tap-circle');
+  const prog = document.getElementById('cd-prog');
+  const lbl  = document.getElementById('cd-label');
+  const C = 2*Math.PI*120;
+  circ.classList.add('cd'); prog.style.strokeDashoffset = C;
+  let rem = 10; lbl.textContent = `${rem}초 후 가능`;
+  if (cdInt) clearInterval(cdInt);
+  cdInt = setInterval(()=>{
+    rem--;
+    if (rem<=0) { clearInterval(cdInt); S.runCD=false; circ.classList.remove('cd'); lbl.textContent=''; prog.style.strokeDashoffset=C; }
+    else { lbl.textContent=`${rem}초 후 가능`; prog.style.strokeDashoffset=C*(1-(10-rem)/10); }
+  }, 1000);
+}
+async function saveCurrentRun() {
+  const newId = await saveRun({
+    date:    today(),
+    course:  S.selCourse,
+    laps:    S.runRec.laps,
+    _idbid:  S.runRec._idbid,
+    _sbid:   S.runRec._sbid,
+  });
+  if (!S.runRec._idbid && !S.runRec._sbid) {
+    if (SB) S.runRec._sbid = newId; else S.runRec._idbid = newId;
+  }
+  const all = await getAllRuns();
+  renderRecentStrip(all);
+}
+function renderRecentStrip(all) {
+  const t = today();
+  const past = (all||[])
+    .filter(r => r.course===S.selCourse && r.date<t)
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .slice(0,3);
+  document.getElementById('recent-strip').innerHTML =
+    past.map(r=>`<div class="rlap">${r.laps}<span class="rlap-u">바퀴</span></div>`).join('');
+}
+function editRun() {
+  openModal('바퀴 수 수정',
+    `<input class="minp" id="er" type="number" min="0" value="${S.runRec.laps}" inputmode="numeric">`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
+      const v = parseInt(document.getElementById('er').value)||0;
+      S.runRec.laps=v; document.getElementById('bignum').textContent=v;
+      await saveCurrentRun().catch(()=>{}); closeModal(null); toast('수정됨!');
+    }}]);
+}
+function resetRun() {
+  openModal('리셋',
+    `<p style="color:var(--dim);margin-bottom:14px">${S.selCourse} 오늘 기록을 초기화할까요?</p>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'리셋',cls:'ok-d',fn:async()=>{
+      const id = S.runRec._sbid || S.runRec._idbid;
+      if (id) await deleteRun(id).catch(()=>{});
+      S.runRec={_idbid:null,_sbid:null,laps:0};
+      document.getElementById('bignum').textContent=0;
+      document.getElementById('recent-strip').innerHTML='';
+      closeModal(null); toast('리셋됨!');
+    }}]);
+}
+
+// ===================== Jump =====================
+function visibleChars() { return S.characters.filter(c=>!c.hidden); }
+
+async function renderJumpScreen() {
+  // Set date label
+  const dl = document.getElementById('jump-date-lbl');
+  if (dl) dl.textContent = fmtF(today());
+
+  // Set animated figure
+  const vc = visibleChars();
+  const jf = document.getElementById('jfig');
+  if (jf) jf.textContent = (vc[0] && !vc[0].img) ? vc[0].av : '🧑';
+
+  // Build table
+  await buildJumpTable();
+}
+
+async function buildJumpTable() {
+  const thead = document.getElementById('jthead');
+  const tbody = document.getElementById('jtbody');
+  const tfoot = document.getElementById('jtfoot');
+  if (!thead||!tbody||!tfoot) return;
+
+  const t   = today();
+  const vc  = visibleChars();
+
+  if (vc.length === 0) {
+    thead.innerHTML = '';
+    tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;padding:30px;color:var(--dim);font-size:.95rem">모든 캐릭터가 숨겨졌어요.<br>메뉴 → 숨긴 캐릭터 복구</td></tr>`;
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  // Fetch jump data
+  let allJumps = [];
+  try { allJumps = await getAllJumps(); } catch(e) { console.error(e); allJumps = []; }
+
+  // Populate cache for today
+  for (const c of vc) {
+    const key = t + '-' + c.id;
+    if (!S.jCache[key]) {
+      const rec = allJumps.find(r => r.date===t && r.charId===c.id);
+      if (rec) {
+        S.jCache[key] = {_idbid: SB?null:rec.id, _sbid: SB?rec.id:null, rounds: safeRounds(rec.rounds)};
+      } else {
+        S.jCache[key] = {_idbid:null, _sbid:null, rounds: new Array(8).fill(0)};
+      }
+    }
+  }
+
+  // Previous record hints
+  const prevMap = {};
+  for (const c of vc) {
+    const prev = allJumps
+      .filter(r => r.charId===c.id && r.date<t)
+      .sort((a,b) => b.date.localeCompare(a.date))[0];
+    prevMap[c.id] = prev ? safeRounds(prev.rounds) : null;
+  }
+
+  // All-time totals
+  const totMap = {};
+  for (const c of S.characters) {
+    totMap[c.id] = allJumps
+      .filter(r => r.charId===c.id)
+      .reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0), 0);
+  }
+
+  // ── THEAD ──
+  let thHtml = '<tr><th style="font-size:.88rem;color:var(--dim);padding:10px 4px;background:var(--sur2);border-right:2px solid var(--brd)">회</th>';
+  for (const c of vc) {
+    const avEl = c.img
+      ? `<img src="${c.img}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
+      : c.av;
+    thHtml += `<th style="background:var(--sur2);border-right:1px solid var(--brd);padding:0">
+      <div class="char-th-in">
+        <span class="char-av" onclick="editChar('${c.id}')">${avEl}</span>
+        <span class="char-nm" onclick="editCharName('${c.id}')">${c.name}</span>
+        <span class="char-tot">${totMap[c.id]||0}<span>개</span></span>
+        <button class="hide-btn" onclick="hideChar('${c.id}')">숨기기</button>
+      </div>
+    </th>`;
+  }
+  thHtml += '</tr>';
+
+  // ── TBODY ──
+  let tbHtml = '';
+  for (let i=0; i<8; i++) {
+    tbHtml += `<tr><td class="rn-cell">${i+1}</td>`;
+    for (const c of vc) {
+      const key = t + '-' + c.id;
+      const v   = S.jCache[key] ? (S.jCache[key].rounds[i] || 0) : 0;
+      const pr  = prevMap[c.id];
+      const prevStr = (pr && pr[i]) ? pr[i] : '';
+      tbHtml += `<td class="val-td">
+        <span class="prev-h">${prevStr}</span>
+        <input class="jinp ${v===0?'zv':'hv'}"
+          id="ji-${c.id}-${i}"
+          type="number" min="0"
+          value="${v}"
+          inputmode="numeric"
+          onfocus="jFocus(this)"
+          oninput="jInput('${c.id}',${i},this.value)"
+          onblur="jBlur(this,'${c.id}',${i})">
+      </td>`;
+    }
+    tbHtml += '</tr>';
+  }
+
+  // ── TFOOT ──
+  let tfHtml = '<tr><td style="font-size:.9rem;color:var(--dim);padding:10px 4px;border-right:2px solid var(--brd)">합계</td>';
+  for (const c of vc) {
+    const key = t + '-' + c.id;
+    const sum = S.jCache[key] ? S.jCache[key].rounds.reduce((a,b)=>a+b,0) : 0;
+    tfHtml += `<td class="fsum" id="jsum-${c.id}">${sum}</td>`;
+  }
+  tfHtml += '</tr>';
+
+  // Write all at once
+  thead.innerHTML = thHtml;
+  tbody.innerHTML = tbHtml;
+  tfoot.innerHTML = tfHtml;
+}
+
+function jFocus(el) {
+  if (el.value === '0') el.value = '';
+  el.classList.remove('zv'); el.classList.add('hv');
+}
+function jBlur(el, charId, i) {
+  const n = parseInt(el.value) || 0;
+  if (n === 0) { el.value='0'; el.classList.remove('hv'); el.classList.add('zv'); }
+  else { el.classList.remove('zv'); el.classList.add('hv'); }
+  const key = today()+'-'+charId;
+  if (S.jCache[key]) S.jCache[key].rounds[i] = n;
+  updateJSums();
+  doSaveJump(charId).catch(()=>{});
+}
+async function jInput(charId, i, val) {
+  const n = parseInt(val)||0;
+  const key = today()+'-'+charId;
+  if (!S.jCache[key]) S.jCache[key] = {_idbid:null,_sbid:null,rounds:new Array(8).fill(0)};
+  S.jCache[key].rounds[i] = n;
+  const el = document.getElementById(`ji-${charId}-${i}`);
+  if (el) { el.classList.toggle('zv',n===0); el.classList.toggle('hv',n>0); }
+  updateJSums();
+  await doSaveJump(charId).catch(()=>{});
+}
+function updateJSums() {
+  const t = today();
+  for (const c of visibleChars()) {
+    const key = t+'-'+c.id;
+    const sum = S.jCache[key] ? S.jCache[key].rounds.reduce((a,b)=>a+b,0) : 0;
+    const el = document.getElementById('jsum-'+c.id);
+    if (el) el.textContent = sum;
+  }
+}
+async function doSaveJump(charId) {
+  const c = S.characters.find(x=>x.id===charId);
+  if (!c) return;
+  const t   = today();
+  const key = t+'-'+charId;
+  const d   = S.jCache[key];
+  if (!d) return;
+  const newId = await saveJump({date:t, charId, rounds:d.rounds, _idbid:d._idbid, _sbid:d._sbid});
+  if (!d._idbid && !d._sbid) {
+    if (SB) d._sbid=newId; else d._idbid=newId;
+  }
+  // Refresh totals in header
+  try {
+    const all = await getAllJumps();
+    const ths = document.querySelectorAll('#jthead .char-tot');
+    visibleChars().forEach((ch,idx)=>{
+      if (!ths[idx]) return;
+      const tot = all.filter(r=>r.charId===ch.id).reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0);
+      ths[idx].innerHTML = `${tot}<span>개</span>`;
+    });
+  } catch(e){}
+}
+
+function hideChar(id) {
+  const c = S.characters.find(x=>x.id===id);
+  if (!c) return;
+  c.hidden = true;
+  saveSettings();
+  buildJumpTable();
+  toast(`${c.name} 숨김. 메뉴에서 복구할 수 있어요.`);
+}
+
+function showHiddenChars() {
+  const hidden = S.characters.filter(c=>c.hidden);
+  if (!hidden.length) { toast('숨긴 캐릭터가 없어요'); return; }
+  const items = hidden.map(c=>
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--brd)">
+      <span style="font-size:1.1rem">${c.av} ${c.name}</span>
+      <button class="hbtn" onclick="restoreChar('${c.id}')">복구</button>
+    </div>`
+  ).join('');
+  openModal('숨긴 캐릭터', items, [{label:'닫기',cls:'cancel',fn:closeModal}]);
+}
+function restoreChar(id) {
+  const c = S.characters.find(x=>x.id===id);
+  if (c) { c.hidden=false; saveSettings(); toast(`${c.name} 복구됨`); closeModal(null); }
+}
+
+// ===================== Char Edit =====================
+function editChar(id) {
+  const idx = S.characters.findIndex(c=>c.id===id);
+  if (idx<0) return;
+  S.editAvIdx=idx; S.selAv=S.characters[idx].av;
+  let avHTML = '';
+  AV_GROUPS.forEach(g=>{
+    avHTML += `<div class="av-sec">${g.label}</div><div class="av-grid">`;
+    g.items.forEach(a=>{
+      avHTML += `<div class="av-opt ${a===S.selAv?'sel':''}" onclick="pickAv(${JSON.stringify(a)},this)">${a}</div>`;
+    });
+    avHTML += '</div>';
+  });
+  if (S.characters[idx].img) {
+    avHTML += `<div style="text-align:center;margin:8px 0"><img src="${S.characters[idx].img}" style="width:44px;height:44px;border-radius:50%;border:2px solid var(--jmp)"> <span style="font-size:.82rem;color:var(--jmp)">현재 사진</span></div>`;
+  }
+  avHTML += `<div class="av-upload" onclick="document.getElementById('av-file').click()">📷 내 사진 업로드</div>`;
+  openModal(`${S.characters[idx].name} 아바타`,
+    `<input class="minp" id="cn" value="${S.characters[idx].name}" placeholder="이름">${avHTML}`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok-o',fn:saveCharEdit}]);
+}
+function editCharName(id) {
+  const idx = S.characters.findIndex(c=>c.id===id);
+  if (idx<0) return;
+  S.editAvIdx=idx;
+  openModal('이름 수정',
+    `<input class="minp" id="cn2" value="${S.characters[idx].name}" placeholder="이름">`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok-o',fn:async()=>{
+      const v=document.getElementById('cn2').value.trim();
+      if (v) S.characters[S.editAvIdx].name=v;
+      await saveSettings(); buildJumpTable(); closeModal(null); toast('저장됨!');
+    }}]);
+  setTimeout(()=>document.getElementById('cn2')?.focus(),80);
+}
+function pickAv(a,el) {
+  S.selAv=a;
+  document.querySelectorAll('.av-opt').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function handleAvUp(e) {
+  const f=e.target.files[0]; if (!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    S.characters[S.editAvIdx].img=ev.target.result;
+    saveSettings(); buildJumpTable(); closeModal(null); toast('아바타 업데이트!');
+  };
+  r.readAsDataURL(f);
+}
+async function saveCharEdit() {
+  const idx=S.editAvIdx;
+  const el=document.getElementById('cn');
+  if (el&&el.value.trim()) S.characters[idx].name=el.value.trim();
+  if (S.selAv) { S.characters[idx].av=S.selAv; S.characters[idx].img=null; }
+  await saveSettings(); buildJumpTable(); closeModal(null); toast('저장됨!');
+}
+
+// ===================== Course Manage =====================
+async function renderCourseManage() {
+  const el = document.getElementById('cmanage-body');
+  let html = S.courses.map((c,i)=>`
+    <div class="citem">
+      <div class="citem-name"><span style="color:var(--run)">📍</span>${c}</div>
+      <div class="citem-btns">
+        <button class="cibtn" onclick="editCourse(${i})">✏️</button>
+        <button class="cibtn del" onclick="delCourse(${i})">🗑</button>
+      </div>
+    </div>`).join('');
+  html += `<div class="add-row" onclick="addCourse()">＋ 코스 추가</div>`;
+  el.innerHTML = html;
+}
+function addCourse() {
+  openModal('코스 추가',`<input class="minp" id="nc" placeholder="예: 실내, 운동장, 한강...">`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'추가',cls:'ok',fn:async()=>{
+      const v=document.getElementById('nc').value.trim(); if(!v)return;
+      S.courses.push(v); await saveSettings(); renderCourseManage(); closeModal(null); toast(`'${v}' 추가!`);
+    }}]);
+  setTimeout(()=>document.getElementById('nc')?.focus(),80);
+}
+function editCourse(i) {
+  openModal('코스 편집',`<input class="minp" id="ec" value="${S.courses[i]}">`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
+      const v=document.getElementById('ec').value.trim(); if(!v)return;
+      S.courses[i]=v; await saveSettings(); renderCourseManage(); closeModal(null); toast('수정됨!');
+    }}]);
+  setTimeout(()=>document.getElementById('ec')?.focus(),80);
+}
+function delCourse(i) {
+  openModal('코스 삭제',`<p style="color:var(--dim);margin-bottom:14px">'${S.courses[i]}' 삭제할까요?</p>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'삭제',cls:'ok-d',fn:async()=>{
+      S.courses.splice(i,1); await saveSettings(); renderCourseManage(); closeModal(null); toast('삭제됨');
+    }}]);
+}
+
+// ===================== Edit Data =====================
+async function loadEditData() {
+  const el = document.getElementById('ed-body');
+  el.innerHTML = '<div class="no-data">불러오는 중...</div>';
+
+  let runs=[], jumps=[];
+  try { runs  = await getAllRuns();  } catch(e){}
+  try { jumps = await getAllJumps(); } catch(e){}
+
+  // Group by date
+  const dateMap = {};
+  runs.forEach(r => {
+    (dateMap[r.date] = dateMap[r.date]||{runs:[],jumps:[]}).runs.push(r);
+  });
+  jumps.forEach(r => {
+    (dateMap[r.date] = dateMap[r.date]||{runs:[],jumps:[]}).jumps.push(r);
+  });
+
+  const dates = Object.keys(dateMap).sort((a,b)=>b.localeCompare(a));
+  let html = `<div class="add-rec-btn" onclick="showAddRecord()">＋ 누락 기록 추가</div>`;
+
+  if (!dates.length) { html+='<div class="no-data">기록이 없어요</div>'; el.innerHTML=html; return; }
+
+  for (const date of dates.slice(0,40)) {
+    const g = dateMap[date];
+    html += `<div class="date-grp"><div class="dg-hdr"><span class="dg-date">${fmtF(date)}</span></div>`;
+
+    for (const r of (g.runs||[])) {
+      html += `<div class="ed-row">
+        <div class="ed-badge run">달리기</div>
+        <div class="ed-info"><div class="ed-sub">${r.course||''}</div></div>
+        <div class="ed-val">${r.laps}<span style="font-size:.7rem;color:var(--dim);font-family:var(--fB)">바퀴</span></div>
+        <div class="ed-acts">
+          <button class="edbtn" onclick="editRunRec(${JSON.stringify(r.id)})">✏️</button>
+          <button class="edbtn del" onclick="delRunRec(${JSON.stringify(r.id)})">🗑</button>
+        </div>
+      </div>`;
+    }
+
+    // Merge jump records per char per day
+    const byChar = {};
+    for (const r of (g.jumps||[])) {
+      if (!byChar[r.charId]) byChar[r.charId]=r;
+    }
+    for (const [cid,r] of Object.entries(byChar)) {
+      const c = S.characters.find(x=>x.id===cid);
+      const tot = safeRounds(r.rounds).reduce((a,b)=>a+b,0);
+      html += `<div class="ed-row">
+        <div class="ed-badge jmp">줄넘기</div>
+        <div class="ed-info"><div class="ed-sub">${c?c.name:cid}</div></div>
+        <div class="ed-val j">${tot}<span style="font-size:.7rem;color:var(--dim);font-family:var(--fB)">개</span></div>
+        <div class="ed-acts">
+          <button class="edbtn" onclick="editJumpRec(${JSON.stringify(r.id)},${JSON.stringify(date)},${JSON.stringify(cid)},${JSON.stringify(safeRounds(r.rounds))})">✏️</button>
+          <button class="edbtn del" onclick="delJumpRec(${JSON.stringify(r.id)},${JSON.stringify(cid)})">🗑</button>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+async function editRunRec(id) {
+  const all = await getAllRuns().catch(()=>[]);
+  const rec = all.find(r=>String(r.id)===String(id)); if (!rec) return;
+  openModal('달리기 수정',
+    `<div style="font-size:.88rem;color:var(--dim);margin-bottom:10px">${fmtF(rec.date)} · ${rec.course||''}</div>
+     <input class="minp" id="er2" type="number" min="0" value="${rec.laps}" inputmode="numeric">`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
+      const v=parseInt(document.getElementById('er2').value)||0;
+      await saveRun({date:rec.date,course:rec.course,laps:v,
+        _idbid:SB?null:rec.id, _sbid:SB?rec.id:null});
+      loadEditData(); closeModal(null); toast('수정됨!');
+    }}]);
+}
+async function delRunRec(id) {
+  openModal('삭제',`<p style="color:var(--dim);margin-bottom:14px">이 기록을 삭제할까요?</p>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'삭제',cls:'ok-d',fn:async()=>{
+      await deleteRun(id).catch(()=>{}); loadEditData(); closeModal(null); toast('삭제됨');
+    }}]);
+}
+
+function editJumpRec(id, date, charId, rounds) {
+  const c = S.characters.find(x=>x.id===charId);
+  let rows='';
+  rounds.forEach((v,i)=>{
+    rows+=`<tr>
+      <td>${i+1}회</td>
+      <td><input class="je-inp" id="jre-${i}" type="number" min="0" value="${v}" inputmode="numeric"></td>
+    </tr>`;
+  });
+  openModal(`줄넘기 수정 — ${c?c.name:charId}`,
+    `<div style="font-size:.88rem;color:var(--dim);margin-bottom:12px">${fmtF(date)}</div>
+     <table class="je-table"><thead><tr><th>회차</th><th>개수</th></tr></thead><tbody>${rows}</tbody></table>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok-o',fn:async()=>{
+      const nr=rounds.map((_,i)=>parseInt(document.getElementById(`jre-${i}`)?.value)||0);
+      await saveJump({date,charId,rounds:nr, _idbid:SB?null:id, _sbid:SB?id:null});
+      // clear cache
+      delete S.jCache[date+'-'+charId];
+      loadEditData(); closeModal(null); toast('수정됨!');
+    }}]);
+}
+async function delJumpRec(id, charId) {
+  openModal('삭제',`<p style="color:var(--dim);margin-bottom:14px">이 기록을 삭제할까요?</p>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'삭제',cls:'ok-d',fn:async()=>{
+      await deleteJump(id).catch(()=>{});
+      loadEditData(); closeModal(null); toast('삭제됨');
+    }}]);
+}
+
+function showAddRecord() {
+  openModal('누락 기록 추가','<div style="font-size:.95rem;color:var(--dim);margin-bottom:8px">어떤 운동을 추가할까요?</div>',
+    [{label:'🏃 달리기',cls:'ok',fn:()=>{closeModal(null);showAddRun();}},
+     {label:'🤸 줄넘기',cls:'ok-o',fn:()=>{closeModal(null);showAddJump();}}]);
+}
+function showAddRun() {
+  const opts = S.courses.map(c=>`<option value="${c}">${c}</option>`).join('');
+  openModal('달리기 추가',
+    `<input class="minp" id="add-date" type="date" value="${today()}">
+     <select class="msel" id="add-course">${opts}</select>
+     <input class="minp" id="add-laps" type="number" min="0" placeholder="바퀴 수" inputmode="numeric">`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'추가',cls:'ok',fn:async()=>{
+      const d=document.getElementById('add-date').value;
+      const co=document.getElementById('add-course').value;
+      const laps=parseInt(document.getElementById('add-laps').value)||0;
+      if (!d||!laps){toast('날짜와 바퀴 수를 입력해주세요');return;}
+      await saveRun({date:d,course:co,laps});
+      loadEditData(); closeModal(null); toast('추가됨!');
+    }}]);
+}
+function showAddJump() {
+  const cOpts = S.characters.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  let rows='';
+  for(let i=0;i<8;i++) rows+=`<tr><td>${i+1}회</td><td><input class="je-inp" id="ja-${i}" type="number" min="0" value="0" inputmode="numeric"></td></tr>`;
+  openModal('줄넘기 추가',
+    `<input class="minp" id="ja-date" type="date" value="${today()}">
+     <select class="msel" id="ja-char">${cOpts}</select>
+     <table class="je-table"><thead><tr><th>회차</th><th>개수</th></tr></thead><tbody>${rows}</tbody></table>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'추가',cls:'ok-o',fn:async()=>{
+      const d=document.getElementById('ja-date').value;
+      const cid=document.getElementById('ja-char').value;
+      if (!d){toast('날짜를 선택해주세요');return;}
+      const rounds=[...Array(8)].map((_,i)=>parseInt(document.getElementById(`ja-${i}`)?.value)||0);
+      await saveJump({date:d,charId:cid,rounds});
+      delete S.jCache[d+'-'+cid];
+      loadEditData(); closeModal(null); toast('추가됨!');
+    }}]);
+}
+
+// ===================== Menu =====================
+async function exportData() {
+  const runs  = await getAllRuns().catch(()=>[]);
+  const jumps = await getAllJumps().catch(()=>[]);
+  const blob = new Blob([JSON.stringify({runs,jumps,courses:S.courses,characters:S.characters},null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url; a.download=`fitness_${today()}.json`; a.click();
+  URL.revokeObjectURL(url); toast('내보내기 완료!');
+}
+function confirmClear() {
+  openModal('전체 삭제',
+    `<p style="color:var(--red);margin-bottom:14px">모든 기록이 삭제됩니다. 되돌릴 수 없어요!</p>`,
+    [{label:'취소',cls:'cancel',fn:closeModal},{label:'전체삭제',cls:'ok-d',fn:async()=>{
+      await clearAll().catch(()=>{});
+      S.runRec={_idbid:null,_sbid:null,laps:0}; S.jCache={};
+      closeModal(null); toast('삭제 완료');
+    }}]);
+}
+
+// ===================== Charts =====================
+let rCI=null, jCI=null;
+function dR(p,c) {
+  const e=today();
+  if (p==='week'){const d=new Date();d.setDate(d.getDate()-6);return{start:d.toISOString().slice(0,10),end:e};}
+  if (p==='month'){const d=new Date();d.setDate(d.getDate()-29);return{start:d.toISOString().slice(0,10),end:e};}
+  if (c) return c;
+  const d=new Date();d.setDate(d.getDate()-6);return{start:d.toISOString().slice(0,10),end:e};
+}
+function dIn(s,e) {
+  const ds=[];let d=new Date(s+'T00:00:00');const en=new Date(e+'T00:00:00');
+  while(d<=en){ds.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1);}
+  return ds;
+}
+async function renderRC() {
+  const {start,end}=dR(S.rP,S.rRange);
+  const all=await getAllRuns().catch(()=>[]);
+  const dates=dIn(start,end), labels=dates.map(fmtD);
+  const data=dates.map(d=>all.filter(r=>r.date===d).reduce((s,r)=>s+r.laps,0));
+  const ctx=document.getElementById('rchart').getContext('2d');
+  if (rCI) rCI.destroy();
+  rCI=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'바퀴',data,borderColor:'#00e5ff',backgroundColor:'rgba(0,229,255,.09)',pointBackgroundColor:'#00e5ff',pointRadius:4,tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8888bb',font:{size:11}}}},scales:{x:{ticks:{color:'#8888bb',font:{size:10}},grid:{color:'#1f1f2e'}},y:{ticks:{color:'#8888bb',font:{size:10}},grid:{color:'#1f1f2e'},beginAtZero:true}}}});
+}
+async function renderJC() {
+  const {start,end}=dR(S.jP,S.jRange);
+  const all=await getAllJumps().catch(()=>[]);
+  const dates=dIn(start,end), labels=dates.map(fmtD);
+  const colors=['#ff6b35','#a855f7','#2ecc71'];
+  const datasets=S.characters.map((c,ci)=>({
+    label:c.name,
+    data:dates.map(d=>all.filter(r=>r.date===d&&r.charId===c.id).reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0)),
+    borderColor:colors[ci%3],backgroundColor:colors[ci%3]+'20',
+    pointBackgroundColor:colors[ci%3],pointRadius:3,tension:.35,fill:false,
+  }));
+  const ctx=document.getElementById('jchart').getContext('2d');
+  if (jCI) jCI.destroy();
+  jCI=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8888bb',font:{size:11}}}},scales:{x:{ticks:{color:'#8888bb',font:{size:10}},grid:{color:'#1f1f2e'}},y:{ticks:{color:'#8888bb',font:{size:10}},grid:{color:'#1f1f2e'},beginAtZero:true}}}});
+}
+function setRP(p,el){S.rP=p;document.querySelectorAll('#screen-charts .chart-card:first-child .ptab').forEach(t=>t.className='ptab');el.classList.add('ar');document.getElementById('rdr').classList.toggle('show',p==='custom');if(p!=='custom')renderRC();}
+function setJP(p,el){S.jP=p;document.querySelectorAll('#screen-charts .chart-card:last-child .ptab').forEach(t=>t.className='ptab');el.classList.add('aj');document.getElementById('jdr').classList.toggle('show',p==='custom');if(p!=='custom')renderJC();}
+function applyRR(){const s=document.getElementById('rds').value,e=document.getElementById('rde').value;if(!s||!e){toast('날짜 선택');return;}S.rRange={start:s,end:e};renderRC();}
+function applyJR(){const s=document.getElementById('jds').value,e=document.getElementById('jde').value;if(!s||!e){toast('날짜 선택');return;}S.jRange={start:s,end:e};renderJC();}
+async function refreshCharts(){await renderRC();await renderJC();}
+
+// ===================== Init =====================
+async function init() {
+  await openIDB();
+  await loadSettings();
+
+  const t=today(), wa=new Date(); wa.setDate(wa.getDate()-6);
+  const waStr = wa.toISOString().slice(0,10);
+  ['rds','jds'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=waStr;});
+  ['rde','jde'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t;});
+
+  // Auto-reconnect Supabase (no test query)
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+  if (url && key) {
+    document.getElementById('sb-url').value = url;
+    document.getElementById('sb-key').value = key;
+    const ok = await loadSBScript();
+    if (ok) {
+      try {
+        SB = window.supabase.createClient(url, key);
+        showScreen('home');
+        return;
+      } catch(e) { SB=null; }
+    }
+  }
+  showScreen('setup');
+}
+
+init();
+</script>
+
+<!--
+SUPABASE 테이블 생성 SQL (대시보드 → SQL Editor에서 실행):
+
+create table fitness_runs (
+  id bigint generated always as identity primary key,
+  date text not null,
+  course text default '',
+  laps int default 0,
+  ts bigint
+);
+
+create table fitness_jumps (
+  id bigint generated always as identity primary key,
+  date text not null,
+  char_id text not null,
+  rounds text,
+  updated_at bigint
+);
+
+alter table fitness_runs enable row level security;
+alter table fitness_jumps enable row level security;
+create policy "Public" on fitness_runs for all using (true) with check (true);
+create policy "Public" on fitness_jumps for all using (true) with check (true);
+-->
+</body>
+</html>
