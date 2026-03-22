@@ -853,11 +853,22 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
         style="background:var(--sur2);border:1px solid var(--brd);border-radius:10px;color:var(--txt);padding:7px 10px;font-size:.88rem;font-family:var(--fB);outline:none;cursor:pointer"
         onchange="onWeightDateChange(this.value)">
     </div>
-    <div style="flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0">
       <table style="border-collapse:collapse;width:100%;table-layout:fixed" id="weight-table">
         <thead id="weight-thead"></thead>
         <tbody id="weight-tbody"></tbody>
         <tfoot id="weight-tfoot"></tfoot>
+      </table>
+    </div>
+    <!-- 목표체중 구분선 -->
+    <div style="padding:6px 14px;background:var(--sur2);border-top:2px solid var(--brd);border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <span style="font-size:.8rem;color:var(--dim);letter-spacing:.05em">🎯 목표 체중</span>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0">
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed" id="goal-table">
+        <thead id="goal-thead"></thead>
+        <tbody id="goal-tbody"></tbody>
+        <tfoot id="goal-tfoot"></tfoot>
       </table>
     </div>
   </div>
@@ -1110,17 +1121,17 @@ async function dbLoadChars() {
     if (error || !data || !data.length) {
       S.characters = DEFAULT_CHARS.map(c=>({...c}));
       for (const c of DEFAULT_CHARS) {
-        try { await SB.from('fitness_characters').upsert({id:c.id,name:c.name,av:c.av,img:c.img,hidden:c.hidden,sort_order:c.sort_order},{onConflict:'id'}); } catch(e){}
+        try { await SB.from('fitness_characters').upsert({id:c.id,name:c.name,av:c.av,img:c.img,hidden:c.hidden,sort_order:c.sort_order,goal_weight:c.goal_weight||null},{onConflict:'id'}); } catch(e){}
       }
       return;
     }
-    S.characters = data.map(r=>({id:r.id,name:r.name,av:r.av||'👤',img:r.img||null,hidden:r.hidden||false,sort_order:r.sort_order||0}));
+    S.characters = data.map(r=>({id:r.id,name:r.name,av:r.av||'👤',img:r.img||null,hidden:r.hidden||false,sort_order:r.sort_order||0,goal_weight:r.goal_weight!=null?parseFloat(r.goal_weight):null}));
   } catch(e) { console.error('dbLoadChars:',e); S.characters=DEFAULT_CHARS.map(c=>({...c})); }
 }
 
 async function dbSaveChar(c) {
   if (!SB) return;
-  try { await SB.from('fitness_characters').upsert({id:c.id,name:c.name,av:c.av,img:c.img,hidden:c.hidden,sort_order:c.sort_order},{onConflict:'id'}); }
+  try { await SB.from('fitness_characters').upsert({id:c.id,name:c.name,av:c.av,img:c.img,hidden:c.hidden,sort_order:c.sort_order,goal_weight:c.goal_weight||null},{onConflict:'id'}); }
   catch(e) { console.error('dbSaveChar:',e); }
 }
 
@@ -1182,9 +1193,9 @@ const DEFAULT_COURSES = [
 ];
 // 기본 캐릭터 (DB 비었을 때)
 const DEFAULT_CHARS = [
-  {id:'char-1', name:'아빠',     av:'👨', img:null, hidden:false, sort_order:0},
-  {id:'char-2', name:'엄마',     av:'👩', img:null, hidden:false, sort_order:1},
-  {id:'char-3', name:'귀염둥이', av:'👶', img:null, hidden:false, sort_order:2},
+  {id:'char-1', name:'아빠',     av:'👨', img:null, hidden:false, sort_order:0, goal_weight:null},
+  {id:'char-2', name:'엄마',     av:'👩', img:null, hidden:false, sort_order:1, goal_weight:null},
+  {id:'char-3', name:'귀염둥이', av:'👶', img:null, hidden:false, sort_order:2, goal_weight:null},
 ];
 
 const today = () => {
@@ -2375,6 +2386,80 @@ async function buildWeightTable(date) {
   document.getElementById('weight-thead').innerHTML = th;
   document.getElementById('weight-tbody').innerHTML = tb;
   document.getElementById('weight-tfoot').innerHTML = tf;
+
+  // ── 목표체중 테이블 빌드 ──
+  buildGoalTable(vc);
+}
+
+function buildGoalTable(vc) {
+  // THEAD (캐릭터 헤더 - 체중 테이블과 동일)
+  let gth = '<tr><th style="background:var(--sur2);border-right:2px solid var(--brd);border-bottom:2px solid var(--brd);width:36px;padding:8px 4px;font-size:.75rem;color:var(--dim);text-align:center">목표</th>';
+  for (const c of vc) {
+    const avEl = c.img ? `<img src="${c.img}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">` : `<span style="font-size:1.6rem">${c.av}</span>`;
+    gth += `<th style="background:var(--sur2);border-right:1px solid var(--brd);border-bottom:2px solid var(--brd);padding:6px 4px;text-align:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">${avEl}
+        <span style="font-size:.75rem;color:var(--dim)">${c.name}</span>
+      </div>
+    </th>`;
+  }
+  gth += '</tr>';
+
+  // TBODY (목표체중 입력)
+  let gtb = '<tr><td style="background:var(--sur);font-size:.8rem;color:#f59e0b;text-align:center;border-right:2px solid var(--brd);padding:6px 4px">🎯kg</td>';
+  for (const c of vc) {
+    const gv = c.goal_weight != null ? c.goal_weight : '';
+    gtb += `<td style="padding:2px 4px;border-right:1px solid var(--brd);background:var(--bg)">
+      <input type="number" step="0.1" min="0" max="300"
+        id="gi-${c.id}"
+        value="${gv}"
+        inputmode="decimal"
+        placeholder="목표"
+        oninput="onGoalInput('${c.id}',this.value)"
+        style="background:transparent;border:none;color:#f59e0b;font-size:1.2rem;font-family:var(--fT);text-align:center;padding:7px 2px;width:100%;outline:none;-webkit-appearance:none">
+    </td>`;
+  }
+  gtb += '</tr>';
+
+  // TFOOT (현재체중과 목표 차이)
+  let gtf = '<tr style="background:var(--sur2);border-top:2px solid var(--brd)"><td style="font-size:.75rem;color:var(--dim);text-align:center;padding:6px 4px;border-right:2px solid var(--brd)">남은거리</td>';
+  for (const c of vc) {
+    const curW = S.wCache[wDate+'-'+c.id]?.weight;
+    const goalW = c.goal_weight;
+    let remStr = '-', remColor = 'var(--dim)';
+    if (curW != null && goalW != null) {
+      const rem = (parseFloat(curW) - parseFloat(goalW)).toFixed(1);
+      if (rem > 0) { remStr = `-${rem}kg`; remColor = 'var(--red)'; }
+      else if (rem < 0) { remStr = `목표달성! 🎉`; remColor = 'var(--run)'; }
+      else { remStr = `딱! 🎯`; remColor = '#f59e0b'; }
+    }
+    gtf += `<td id="grem-${c.id}" style="font-family:var(--fT);font-size:.85rem;color:${remColor};text-align:center;padding:6px 4px;border-right:1px solid var(--brd)">${remStr}</td>`;
+  }
+  gtf += '</tr>';
+
+  const gt = document.getElementById('goal-thead');
+  const gb = document.getElementById('goal-tbody');
+  const gf = document.getElementById('goal-tfoot');
+  if (gt) gt.innerHTML = gth;
+  if (gb) gb.innerHTML = gtb;
+  if (gf) gf.innerHTML = gtf;
+}
+
+// 목표체중 입력 저장
+let goalSaveTimer = {};
+async function onGoalInput(charId, val) {
+  const n = val==='' ? null : parseFloat(val);
+  const c = S.characters.find(x=>x.id===charId);
+  if (!c) return;
+  c.goal_weight = n;
+  // 남은 거리 즉시 업데이트
+  const vc = S.characters.filter(x=>!x.hidden);
+  buildGoalTable(vc);
+  // debounce 1초 후 DB 저장
+  if (goalSaveTimer[charId]) clearTimeout(goalSaveTimer[charId]);
+  goalSaveTimer[charId] = setTimeout(async()=>{
+    await dbSaveChar(c);
+    toast(`${c.name} 목표체중 저장됨`);
+  }, 1000);
 }
 
 let wSaveTimer = {};
@@ -2473,13 +2558,16 @@ async function loadWeightEditData(selYear) {
         return `<span style="font-size:.75rem;color:${col};margin-right:6px">${c.av} ${sign}${diff}kg</span>`;
       }).join('');
 
-      // ── 캐릭터 헤더 (이름만, 아바타는 컴팩트하게) ──
+      // ── 캐릭터 헤더 (아바타 + 이름 + 목표체중) ──
       const charHeaders = chars.map(c=>{
         const av = c.img
           ? `<img src="${c.img}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 2px">`
           : `<span style="font-size:1.3rem;display:block;line-height:1.2">${c.av}</span>`;
+        const goalStr = c.goal_weight!=null
+          ? `<span style="font-size:.65rem;color:#f59e0b;display:block">🎯${c.goal_weight}kg</span>`
+          : '';
         return `<th style="width:${colW}%;padding:6px 2px;background:var(--sur3);border-right:1px solid var(--brd);text-align:center">
-          ${av}<span style="font-size:.72rem;color:var(--dim);display:block">${c.name}</span>
+          ${av}<span style="font-size:.72rem;color:var(--dim);display:block">${c.name}</span>${goalStr}
         </th>`;
       }).join('');
 
@@ -2519,11 +2607,20 @@ async function loadWeightEditData(selYear) {
               style="padding:10px 4px;border-right:1px solid var(--brd);text-align:center;color:var(--sur3);font-size:.9rem;cursor:pointer;${rowStyle}"
               title="클릭해서 입력">—</td>`;
           }
+          const gw = c.goal_weight;
+          let diffBadge = '';
+          if (gw != null) {
+            const d = (parseFloat(rec.weight) - parseFloat(gw)).toFixed(1);
+            if (d > 0) diffBadge = `<span style="font-size:.6rem;color:var(--red)">+${d}</span>`;
+            else if (d < 0) diffBadge = `<span style="font-size:.6rem;color:var(--run)">${d}</span>`;
+            else diffBadge = `<span style="font-size:.6rem;color:#f59e0b">🎯</span>`;
+          }
           return `<td onclick="editWeightRec(${rec.id})"
-            style="padding:8px 4px;border-right:1px solid var(--brd);text-align:center;cursor:pointer;${rowStyle}"
+            style="padding:6px 4px;border-right:1px solid var(--brd);text-align:center;cursor:pointer;${rowStyle}"
             title="클릭해서 수정">
-            <span style="font-family:var(--fT);font-size:1.05rem;color:var(--run)">${rec.weight}</span>
-            <span style="font-size:.65rem;color:var(--dim);display:block">kg</span>
+            <span style="font-family:var(--fT);font-size:1rem;color:var(--run)">${rec.weight}</span>
+            <span style="font-size:.62rem;color:var(--dim)">kg</span>
+            ${diffBadge ? `<span style="display:block">${diffBadge}</span>` : ''}
           </td>`;
         }).join('');
 
@@ -2632,10 +2729,13 @@ async function renderWeightCharts() {
   let html = '';
   vc.forEach((c,ci)=>{
     html += `<div class="chart-card" style="margin-bottom:0" id="wcard-${c.id}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span style="font-size:1.8rem">${c.img?'🧑':c.av}</span>
-        <span style="font-family:var(--fT);font-size:1rem;color:var(--run)">${c.name}</span>
-        <span id="wdelta-${c.id}" style="font-size:.82rem;margin-left:auto"></span>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <span style="font-family:var(--fT);font-size:1rem;color:var(--run)">${c.name}</span>
+          ${c.goal_weight!=null?`<span style="font-size:.75rem;color:#f59e0b">🎯 목표 ${c.goal_weight}kg</span>`:''}
+        </div>
+        <span id="wdelta-${c.id}" style="font-size:.8rem;margin-left:auto;text-align:right"></span>
       </div>
       <div class="chart-wrap"><canvas id="wchart-${c.id}"></canvas></div>
     </div>`;
@@ -2667,6 +2767,22 @@ async function renderWeightCharts() {
 
     const ctx = document.getElementById('wchart-'+c.id);
     if (!ctx) return;
+
+    // 목표체중 점선 dataset
+    const goalW = c.goal_weight;
+    const goalDataset = goalW != null ? [{
+      label:'목표',
+      data: dates.map(()=>goalW),
+      borderColor:'#f59e0b',
+      borderWidth:1.5,
+      borderDash:[5,4],
+      pointRadius:0,
+      fill:false,
+      spanGaps:true,
+      tension:0,
+      backgroundColor:'transparent',
+    }] : [];
+
     const chart = new Chart(ctx.getContext('2d'), {
       type:'line',
       data:{labels, datasets:[{
@@ -2676,11 +2792,15 @@ async function renderWeightCharts() {
         pointRadius: data.map((v,i)=>v!=null?(i===data.length-1?7:4):0),
         pointBorderColor:'#00e5ff', pointBorderWidth:2,
         tension:.35, fill:true, spanGaps:true,
-      }]},
+      }, ...goalDataset]},
       options:{
         responsive:true,maintainAspectRatio:false,
         layout:{padding:{top:20}},
-        plugins:{legend:{display:false}, tooltip:{callbacks:{label:v=>`${v.raw}kg`}}},
+        plugins:{
+          legend:{display:goalW!=null, labels:{color:'#8888bb',font:{size:10},
+            filter:(item)=>item.text==='목표'}},
+          tooltip:{callbacks:{label:v=>`${v.raw}kg`}}
+        },
         scales:{
           x:{ticks:{color:'#8888bb',font:{size:10}},grid:{color:'#1f1f2e'}},
           y:{ticks:{color:'#8888bb',font:{size:10},callback:v=>`${v}kg`},grid:{color:'#1f1f2e'},beginAtZero:false}
