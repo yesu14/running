@@ -522,6 +522,13 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
         <tfoot id="jtfoot"></tfoot>
       </table>
     </div>
+    <!-- 저장 버튼 -->
+    <div style="padding:12px 16px;background:var(--sur);border-top:1px solid var(--brd);flex-shrink:0">
+      <button onclick="saveAllJumps()" id="jump-save-btn"
+        style="width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;transition:opacity .15s">
+        💾 저장하기
+      </button>
+    </div>
   </div>
 </div>
 
@@ -870,6 +877,13 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
         <tbody id="goal-tbody"></tbody>
         <tfoot id="goal-tfoot"></tfoot>
       </table>
+    </div>
+    <!-- 저장 버튼 -->
+    <div style="padding:12px 16px;background:var(--sur);border-top:1px solid var(--brd);flex-shrink:0">
+      <button onclick="saveWeightAndGoal()" id="weight-save-btn"
+        style="width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em">
+        💾 저장하기
+      </button>
     </div>
   </div>
 </div>
@@ -1532,19 +1546,20 @@ function jBlur(el, charId, i) {
   if (n === 0) { el.value='0'; el.classList.remove('hv'); el.classList.add('zv'); }
   else { el.classList.remove('zv'); el.classList.add('hv'); }
   const key = today()+'-'+charId;
-  if (S.jCache[key]) S.jCache[key].rounds[i] = n;
+  if (!S.jCache[key]) S.jCache[key] = {_sbid:null, rounds:new Array(8).fill(0)};
+  S.jCache[key].rounds[i] = n;
   updateJSums();
-  doSaveJump(charId).catch(()=>{});
+  // 저장은 저장버튼 클릭 시에만
 }
-async function jInput(charId, i, val) {
+function jInput(charId, i, val) {
   const n = parseInt(val)||0;
   const key = today()+'-'+charId;
-  if (!S.jCache[key]) S.jCache[key] = {_idbid:null,_sbid:null,rounds:new Array(8).fill(0)};
+  if (!S.jCache[key]) S.jCache[key] = {_sbid:null, rounds:new Array(8).fill(0)};
   S.jCache[key].rounds[i] = n;
   const el = document.getElementById(`ji-${charId}-${i}`);
   if (el) { el.classList.toggle('zv',n===0); el.classList.toggle('hv',n>0); }
   updateJSums();
-  await doSaveJump(charId).catch(()=>{});
+  // 저장은 저장버튼 클릭 시에만
 }
 function updateJSums() {
   const t = today();
@@ -1555,6 +1570,35 @@ function updateJSums() {
     if (el) el.textContent = sum;
   }
 }
+// 줄넘기 저장 버튼 클릭 — 모든 캐릭터 저장
+async function saveAllJumps() {
+  const btn = document.getElementById('jump-save-btn');
+  if (btn) { btn.textContent = '저장 중...'; btn.disabled = true; }
+  try {
+    const vc = visibleChars();
+    let saved = 0;
+    for (const c of vc) {
+      await doSaveJump(c.id);
+      saved++;
+    }
+    toast(`줄넘기 기록 저장됨! ✅`);
+    // 헤더 합계 새로고침
+    try {
+      const all = await getAllJumps();
+      visibleChars().forEach(ch=>{
+        const el = document.getElementById('jsum-'+ch.id);
+        const tot = all.filter(r=>r.charId===ch.id).reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0);
+        // update header total
+        const th = document.querySelector(`#jthead .char-tot[id]`);
+      });
+    } catch(e){}
+  } catch(e) {
+    toast('저장 오류: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '💾 저장하기'; btn.disabled = false; }
+  }
+}
+
 async function doSaveJump(charId) {
   const c = S.characters.find(x=>x.id===charId);
   if (!c) return;
@@ -2353,12 +2397,11 @@ async function buildWeightTable(date) {
     tb += `<td style="padding:3px 4px;border-right:1px solid var(--brd);background:var(--bg)">
       <div style="display:flex;align-items:center">
         ${prevStr}
-        <input type="number" step="0.1" min="0" max="300"
+        <input type="number" step="0.01" min="0" max="999"
           id="wi-${c.id}"
           value="${v}"
           inputmode="decimal"
           placeholder="kg"
-          onfocus="if(this.value===''){}; this.style.color='var(--txt)'"
           oninput="onWeightInput('${c.id}',this.value)"
           style="background:transparent;border:none;color:${v?'var(--txt)':'var(--sur3)'};font-size:1.3rem;font-family:var(--fT);text-align:center;padding:7px 2px;width:100%;outline:none;-webkit-appearance:none;flex:1;min-width:0">
       </div>
@@ -2374,7 +2417,7 @@ async function buildWeightTable(date) {
     let diffStr = '-';
     let diffColor = 'var(--dim)';
     if (cache.weight != null && pr != null) {
-      const diff = (parseFloat(cache.weight) - parseFloat(pr)).toFixed(1);
+      const diff = (parseFloat(cache.weight) - parseFloat(pr)).toFixed(2);
       if (diff > 0) { diffStr = `+${diff}kg`; diffColor = 'var(--red)'; }
       else if (diff < 0) { diffStr = `${diff}kg`; diffColor = 'var(--run)'; }
       else { diffStr = '±0'; diffColor = 'var(--dim)'; }
@@ -2409,12 +2452,12 @@ function buildGoalTable(vc) {
   for (const c of vc) {
     const gv = c.goal_weight != null ? c.goal_weight : '';
     gtb += `<td style="padding:2px 4px;border-right:1px solid var(--brd);background:var(--bg)">
-      <input type="number" step="0.1" min="0" max="300"
+      <input type="number" step="0.01" min="0" max="999"
         id="gi-${c.id}"
         value="${gv}"
         inputmode="decimal"
         placeholder="목표"
-        oninput="onGoalInput('${c.id}',this.value)"
+        onchange="onGoalInput('${c.id}',this.value)"
         style="background:transparent;border:none;color:#f59e0b;font-size:1.2rem;font-family:var(--fT);text-align:center;padding:7px 2px;width:100%;outline:none;-webkit-appearance:none">
     </td>`;
   }
@@ -2427,7 +2470,7 @@ function buildGoalTable(vc) {
     const goalW = c.goal_weight;
     let remStr = '-', remColor = 'var(--dim)';
     if (curW != null && goalW != null) {
-      const rem = (parseFloat(curW) - parseFloat(goalW)).toFixed(1);
+      const rem = (parseFloat(curW) - parseFloat(goalW)).toFixed(2);
       if (rem > 0) { remStr = `-${rem}kg`; remColor = 'var(--red)'; }
       else if (rem < 0) { remStr = `목표달성! 🎉`; remColor = 'var(--run)'; }
       else { remStr = `딱! 🎯`; remColor = '#f59e0b'; }
@@ -2444,40 +2487,87 @@ function buildGoalTable(vc) {
   if (gf) gf.innerHTML = gtf;
 }
 
-// 목표체중 입력 저장
-let goalSaveTimer = {};
-async function onGoalInput(charId, val) {
+function onGoalInput(charId, val) {
   const n = val==='' ? null : parseFloat(val);
   const c = S.characters.find(x=>x.id===charId);
   if (!c) return;
   c.goal_weight = n;
-  // 남은 거리 즉시 업데이트
-  const vc = S.characters.filter(x=>!x.hidden);
-  buildGoalTable(vc);
-  // debounce 1초 후 DB 저장
-  if (goalSaveTimer[charId]) clearTimeout(goalSaveTimer[charId]);
-  goalSaveTimer[charId] = setTimeout(async()=>{
-    await dbSaveChar(c);
-    toast(`${c.name} 목표체중 저장됨`);
-  }, 1000);
+  // tfoot 남은거리 셀만 업데이트 (innerHTML 전체 재작성 없이 → 포커스 유지)
+  updateGoalRemCell(c);
+}
+function updateGoalRemCell(c) {
+  const el = document.getElementById('grem-'+c.id);
+  if (!el) return;
+  const curW = S.wCache[wDate+'-'+c.id]?.weight;
+  const goalW = c.goal_weight;
+  let remStr = '-', remColor = 'var(--dim)';
+  if (curW != null && goalW != null) {
+    const rem = (parseFloat(curW) - parseFloat(goalW)).toFixed(2);
+    if (rem > 0) { remStr = `-${rem}kg`; remColor = 'var(--red)'; }
+    else if (rem < 0) { remStr = `목표달성! 🎉`; remColor = 'var(--run)'; }
+    else { remStr = `딱! 🎯`; remColor = '#f59e0b'; }
+  }
+  el.textContent = remStr;
+  el.style.color = remColor;
 }
 
-let wSaveTimer = {};
-async function onWeightInput(charId, val) {
+function onWeightInput(charId, val) {
   const date = wDate;
   const key = date+'-'+charId;
   const n = val==='' ? null : parseFloat(val);
   if (!S.wCache[key]) S.wCache[key] = {_sbid:null, weight:null};
   S.wCache[key].weight = n;
-  // debounce 1초 후 저장
-  if (wSaveTimer[key]) clearTimeout(wSaveTimer[key]);
-  wSaveTimer[key] = setTimeout(async()=>{
-    if (n===null) return;
-    const newId = await saveWeight({date, charId, weight:n, _sbid:S.wCache[key]._sbid});
-    if (!S.wCache[key]._sbid) S.wCache[key]._sbid = newId;
-    // 변화량 업데이트
-    buildWeightTable(date);
-  }, 800);
+  // 합계/변화 표시는 즉시 업데이트, 저장은 버튼 클릭 시
+  const vc = S.characters.filter(c=>!c.hidden);
+  buildGoalTable(vc);
+}
+
+// 체중+목표체중 저장 버튼
+async function saveWeightAndGoal() {
+  const btn = document.getElementById('weight-save-btn');
+  if (btn) { btn.textContent = '저장 중...'; btn.disabled = true; }
+  try {
+    const vc = S.characters.filter(c=>!c.hidden);
+    let saved = 0;
+
+    // 저장 전 현재 입력값 sync (oninput이 안 잡힐 경우 대비)
+    for (const c of vc) {
+      const wi = document.getElementById('wi-'+c.id);
+      if (wi && wi.value !== '') {
+        const key = wDate+'-'+c.id;
+        if (!S.wCache[key]) S.wCache[key] = {_sbid:null, weight:null};
+        S.wCache[key].weight = parseFloat(wi.value)||null;
+      }
+      const gi = document.getElementById('gi-'+c.id);
+      if (gi && gi.value !== '') {
+        c.goal_weight = parseFloat(gi.value)||null;
+      }
+    }
+
+    // 1) 현재 체중 저장
+    for (const c of vc) {
+      const key = wDate+'-'+c.id;
+      const cache = S.wCache[key];
+      if (!cache || cache.weight == null) continue;
+      const newId = await saveWeight({date:wDate, charId:c.id, weight:cache.weight, _sbid:cache._sbid});
+      if (!cache._sbid && newId) cache._sbid = newId;
+      saved++;
+    }
+
+    // 2) 목표체중 저장 (goal_weight 변경된 캐릭터)
+    for (const c of vc) {
+      await dbSaveChar(c);
+    }
+
+    // 3) 변화량 테이블 새로고침
+    await buildWeightTable(wDate);
+
+    toast(saved > 0 ? `체중 저장됨! ✅` : `목표체중 저장됨! ✅`);
+  } catch(e) {
+    toast('저장 오류: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = '💾 저장하기'; btn.disabled = false; }
+  }
 }
 
 // ===================== Weight Edit =====================
@@ -2642,7 +2732,7 @@ function editWeightByDateChar(date, charId) {
   const c = S.characters.find(x=>x.id===charId);
   openModal(`체중 입력 — ${c?c.name:charId}`,
     `<div style="font-size:.88rem;color:var(--dim);margin-bottom:10px">${fmtF(date)}</div>
-     <input class="minp" id="we-new" type="number" step="0.1" min="0" max="300"
+     <input class="minp" id="we-new" type="number" step="0.01" min="0" max="999"
        inputmode="decimal" placeholder="체중 (kg)" autofocus>`,
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
       const v = parseFloat(document.getElementById('we-new').value);
@@ -2671,7 +2761,7 @@ function editWeightRec(id) {
   if (!rec) { toast('기록을 찾을 수 없어요'); return; }
   const c = S.characters.find(x=>x.id===rec.charId);
   openModal(`⚖️ ${c?c.name:rec.charId} — ${fmtF(rec.date)}`,
-    `<input class="minp" id="we-val" type="number" step="0.1" min="0" max="300"
+    `<input class="minp" id="we-val" type="number" step="0.01" min="0" max="999"
        value="${rec.weight}" inputmode="decimal" placeholder="체중 (kg)">`,
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
       const v = parseFloat(document.getElementById('we-val').value);
