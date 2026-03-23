@@ -403,6 +403,11 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
         </circle>
       </svg>
     </div>
+    <!-- D+day 카운터 -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+      <div id="home-dday-num" style="font-family:var(--fT);font-size:1.4rem;line-height:1;background:linear-gradient(135deg,#00e5ff,#7df9ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></div>
+      <div id="home-dday-lbl" style="font-size:.65rem;color:var(--dim);letter-spacing:.04em"></div>
+    </div>
     <div onclick="showScreen('menu')" style="background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:7px 14px;font-size:.9rem;color:var(--dim);cursor:pointer">☰</div>
   </div>
 
@@ -815,7 +820,16 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
         <div class="mitem-l"><span class="mico">🗑</span><span style="color:var(--red)">전체 삭제</span></div><span class="marr" style="color:var(--red)">›</span>
       </div>
     </div>
-    <div style="text-align:center;color:var(--dim);font-size:.8rem;padding:8px">운동 기록기 v3.0</div>
+    <div class="mgrp">
+      <div class="mgrp-ttl">ABOUT US</div>
+      <div class="mitem" onclick="showAbout()" style="align-items:flex-start;cursor:pointer">
+        <div class="mitem-l" style="flex-direction:column;align-items:flex-start;gap:4px">
+          <span style="font-size:.92rem;color:var(--txt)">우리 가족 건강 이야기 💙</span>
+          <span style="font-size:.78rem;color:var(--dim);line-height:1.4">시작일: 2026.03.23</span>
+        </div><span class="marr">›</span>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--dim);font-size:.75rem;padding:12px 0 8px">콩콩런 v1.0</div>
   </div>
 </div>
 
@@ -2907,6 +2921,57 @@ async function renderWeightCharts() {
   });
 }
 
+// ===================== D+day Counter =====================
+const START_DATE = '2026-03-23'; // 앱 시작일 (한국시간 기준 1일)
+
+function updateDday() {
+  const start = new Date(START_DATE + 'T00:00:00');
+  const now = new Date();
+  // 한국 시간(UTC+9) 기준 오늘 날짜
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const todayKST = new Date(kst.toISOString().slice(0,10) + 'T00:00:00');
+  const diffMs = todayKST - start;
+  const day = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1; // 시작일이 1일
+
+  const numEl = document.getElementById('home-dday-num');
+  const lblEl = document.getElementById('home-dday-lbl');
+  if (numEl) numEl.textContent = day + '일';
+  if (lblEl) lblEl.textContent = '함께한 날';
+}
+
+// ===================== About Us =====================
+function showAbout() {
+  const msg = `
+    <div style="text-align:center;padding:8px 0 4px">
+      <div style="font-size:2.5rem;margin-bottom:8px">💙</div>
+      <div style="font-family:var(--fT);font-size:1.1rem;color:var(--run);margin-bottom:16px">우리 가족 건강 이야기</div>
+      <div style="font-size:.92rem;color:var(--dim);line-height:1.85;word-break:keep-all;text-align:left;padding:0 4px">
+        2026년 3월 23일,<br>
+        우리 가족의 건강과 꿈을 위해<br>
+        이 앱이 시작되었습니다.<br><br>
+        오직 우리만을 위한 이 공간에서,<br>
+        평생 함께하며 건강을 지키고,<br>
+        서로의 꿈을 응원하며<br>
+        하나씩 이루어가길 바랍니다.
+      </div>
+      <div id="about-dday-badge" style="margin-top:18px;display:inline-block;background:linear-gradient(135deg,rgba(0,229,255,.15),rgba(0,150,255,.1));border:1px solid rgba(0,229,255,.3);border-radius:14px;padding:10px 20px">
+        <div style="font-family:var(--fT);font-size:1.6rem;color:var(--run)"></div>
+        <div style="font-size:.78rem;color:var(--dim);margin-top:2px">우리가 함께한 날</div>
+      </div>
+    </div>`;
+  openModal('', msg, [{label:'닫기', cls:'cancel', fn:closeModal}]);
+  // 배지 숫자 채우기
+  setTimeout(()=>{
+    const start = new Date(START_DATE + 'T00:00:00');
+    const now = new Date();
+    const kst = new Date(now.getTime() + 9*60*60*1000);
+    const todayKST = new Date(kst.toISOString().slice(0,10)+'T00:00:00');
+    const day = Math.floor((todayKST-start)/(1000*60*60*24))+1;
+    const badge = document.querySelector('#about-dday-badge div');
+    if (badge) badge.textContent = day + '일째';
+  }, 50);
+}
+
 // ===================== Init =====================
 async function init() {
   // 1. 날짜 입력 기본값 세팅
@@ -2939,6 +3004,7 @@ async function init() {
 
   // 4. DB에서 설정(코스/캐릭터) 로드 — SB가 준비된 후에 실행
   await loadSettings();
+  updateDday();
   console.log('✅ 설정 로드 완료:', S.courses.length, '개 코스,', S.characters.length, '개 캐릭터');
 
   showScreen('home');
