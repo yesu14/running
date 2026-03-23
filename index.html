@@ -1153,7 +1153,7 @@ async function dbLoadChars() {
       }
       return;
     }
-    S.characters = data.map(r=>({id:r.id,name:r.name,av:r.av||'👤',img:r.img||null,hidden:r.hidden||false,sort_order:r.sort_order||0,goal_weight:r.goal_weight!=null?parseFloat(r.goal_weight):null}));
+    S.characters = data.map(r=>({id:r.id,name:r.name,av:r.av||'👤',img:r.img||null,hidden:r.hidden||false,sort_order:r.sort_order||0,goal_weight:r.goal_weight!=null?truncW(String(r.goal_weight)):null}));
   } catch(e) { console.error('dbLoadChars:',e); S.characters=DEFAULT_CHARS.map(c=>({...c})); }
 }
 
@@ -1168,7 +1168,7 @@ async function getAllWeights() {
   if (!SB) return [];
   const {data,error} = await SB.from('fitness_weights').select('*').order('date',{ascending:false});
   if (error) return [];
-  return (data||[]).map(r=>({id:r.id,date:r.date,charId:r.char_id,weight:parseFloat(r.weight)||0}));
+  return (data||[]).map(r=>({id:r.id,date:r.date,charId:r.char_id,weight:r.weight!=null?parseFloat(r.weight):null}));
 }
 async function saveWeight(rec) {
   if (!SB) return null;
@@ -2502,11 +2502,11 @@ function buildGoalTable(vc) {
 }
 
 function onGoalInput(charId, val) {
-  const n = val==='' ? null : parseFloat(val);
+  const n = truncW(val);
   const c = S.characters.find(x=>x.id===charId);
   if (!c) return;
   c.goal_weight = n;
-  // tfoot 남은거리 셀만 업데이트 (innerHTML 전체 재작성 없이 → 포커스 유지)
+  // tfoot 남은거리 셀만 업데이트 (포커스 유지)
   updateGoalRemCell(c);
 }
 function updateGoalRemCell(c) {
@@ -2528,10 +2528,10 @@ function updateGoalRemCell(c) {
 function onWeightInput(charId, val) {
   const date = wDate;
   const key = date+'-'+charId;
-  const n = val==='' ? null : parseFloat(val);
+  const n = truncW(val);
   if (!S.wCache[key]) S.wCache[key] = {_sbid:null, weight:null};
   S.wCache[key].weight = n;
-  // 합계/변화 표시는 즉시 업데이트, 저장은 버튼 클릭 시
+  // 변화량/목표 표시 즉시 업데이트
   const vc = S.characters.filter(c=>!c.hidden);
   buildGoalTable(vc);
 }
@@ -2544,17 +2544,23 @@ async function saveWeightAndGoal() {
     const vc = S.characters.filter(c=>!c.hidden);
     let saved = 0;
 
-    // 저장 전 현재 입력값 sync (oninput이 안 잡힐 경우 대비)
+    // 저장 전 입력값 sync — truncW로 소수점 2자리 절삭(사사오입 없음)
     for (const c of vc) {
       const wi = document.getElementById('wi-'+c.id);
-      if (wi && wi.value !== '') {
+      if (wi) {
         const key = wDate+'-'+c.id;
         if (!S.wCache[key]) S.wCache[key] = {_sbid:null, weight:null};
-        S.wCache[key].weight = parseFloat(wi.value)||null;
+        const n = truncW(wi.value);
+        if (n !== null) {
+          S.wCache[key].weight = n;
+          wi.value = n; // 표시도 절삭된 값으로
+        }
       }
       const gi = document.getElementById('gi-'+c.id);
-      if (gi && gi.value !== '') {
-        c.goal_weight = parseFloat(gi.value)||null;
+      if (gi) {
+        const gn = truncW(gi.value);
+        c.goal_weight = gn;
+        if (gn !== null) gi.value = gn;
       }
     }
 
@@ -2568,15 +2574,15 @@ async function saveWeightAndGoal() {
       saved++;
     }
 
-    // 2) 목표체중 저장 (goal_weight 변경된 캐릭터)
-    for (const c of vc) {
+    // 2) 목표체중 항상 저장 (변경 여부 무관하게 — DB 동기화 보장)
+    for (const c of S.characters) {
       await dbSaveChar(c);
     }
 
     // 3) 변화량 테이블 새로고침
     await buildWeightTable(wDate);
 
-    toast(saved > 0 ? `체중 저장됨! ✅` : `목표체중 저장됨! ✅`);
+    toast(saved > 0 ? `✅ 체중 저장됨!` : `✅ 목표체중 저장됨!`);
   } catch(e) {
     toast('저장 오류: ' + e.message);
   } finally {
@@ -2749,7 +2755,7 @@ function editWeightByDateChar(date, charId) {
      <input class="minp" id="we-new" type="number" step="0.01" min="0" max="999"
        inputmode="decimal" placeholder="체중 (kg)" autofocus>`,
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
-      const v = parseFloat(document.getElementById('we-new').value);
+      const v = truncW(document.getElementById('we-new').value);
       if (!v||v<=0) { toast('올바른 체중을 입력해주세요'); return; }
       const newId = await saveWeight({date, charId, weight:v, _sbid:null});
       if (!window._weightRecs) window._weightRecs = {};
@@ -2778,7 +2784,7 @@ function editWeightRec(id) {
     `<input class="minp" id="we-val" type="number" step="0.01" min="0" max="999"
        value="${rec.weight}" inputmode="decimal" placeholder="체중 (kg)">`,
     [{label:'취소',cls:'cancel',fn:closeModal},{label:'저장',cls:'ok',fn:async()=>{
-      const v = parseFloat(document.getElementById('we-val').value);
+      const v = truncW(document.getElementById('we-val').value);
       if (!v||v<=0) { toast('올바른 체중을 입력해주세요'); return; }
       try {
         await SB.from('fitness_weights').update({weight:v,updated_at:Date.now()}).eq('id',id);
@@ -2921,6 +2927,19 @@ async function renderWeightCharts() {
   });
 }
 
+// ── 체중 소수점 2자리 절삭 (사사오입 없음) ──
+function truncW(val) {
+  if (val === '' || val === null || val === undefined) return null;
+  const n = typeof val === 'string' ? parseFloat(val) : val;
+  if (isNaN(n) || n <= 0) return null;
+  return Math.trunc(n * 100) / 100; // 예: 68.567 → 68.56 (사사오입 없음)
+}
+function fmtW(n) {
+  // 표시용: 소수점 이하 불필요한 0 제거, 최대 2자리
+  if (n == null) return '';
+  const s = (Math.trunc(n * 100) / 100).toFixed(2);
+  return s.replace(/\.?0+$/, ''); // 68.50 → 68.5, 68.00 → 68
+}
 // ===================== D+day Counter =====================
 const START_DATE = '2026-03-23'; // 앱 시작일 (한국시간 기준 1일)
 
