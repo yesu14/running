@@ -525,8 +525,8 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
     </div>
     <!-- 저장 버튼 -->
     <div style="padding:12px 16px;background:var(--sur);border-top:1px solid var(--brd);flex-shrink:0">
-      <button onclick="saveAllJumps()" id="jump-save-btn" data-saving="0"
-        style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;-webkit-tap-highlight-color:rgba(0,0,0,.1);touch-action:manipulation">💾 저장하기</button>
+      <button onclick="saveAllJumps()" id="jump-save-btn"
+        style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;touch-action:manipulation">💾 저장하기</button>
     </div>
   </div>
 </div>
@@ -888,8 +888,8 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
     </div>
     <!-- 저장 버튼 -->
     <div style="padding:12px 16px;background:var(--sur);border-top:1px solid var(--brd);flex-shrink:0">
-      <button onclick="saveWeightAndGoal()" id="weight-save-btn" data-saving="0"
-        style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;-webkit-tap-highlight-color:rgba(0,0,0,.1);touch-action:manipulation">💾 저장하기</button>
+      <button onclick="saveWeightAndGoal()" id="weight-save-btn"
+        style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;touch-action:manipulation">💾 저장하기</button>
     </div>
   </div>
 </div>
@@ -1245,6 +1245,8 @@ function showScreen(n) {
   if (n === 'charts') refreshCharts();
   // 화면 전환 시 해당 화면 데이터 동기화
   if (n === 'jump') {
+    _jSaving = false; // 화면 전환 시 저장 플래그 항상 리셋
+    jBtnState(false);
     renderJumpScreen().catch(e => console.error('jump sync:', e));
   }
 }
@@ -1555,35 +1557,49 @@ function getRoundsFromDOM(charId) {
   return rounds;
 }
 // 줄넘기 저장 버튼 클릭 — 모든 캐릭터 저장
-async function saveAllJumps() {
-  // disabled 상태 체크만 — 플래그/DOM 조작 최소화
+let _jSaving = false; // 순수 JS 플래그 — DOM과 완전 분리
+
+function jBtnState(saving) {
+  // 매번 getElementById로 새로 찾음
   const b = document.getElementById('jump-save-btn');
-  if (b && b.dataset.saving === '1') return;
-  if (b) { b.dataset.saving = '1'; b.textContent = '✓ 저장 중...'; b.style.background = '#00b8cc'; }
+  if (!b) return;
+  if (saving) {
+    b.textContent = '✓ 저장 중...';
+    b.style.background = '#00b8cc';
+    b.style.pointerEvents = 'none';
+  } else {
+    b.textContent = '💾 저장하기';
+    b.style.background = 'var(--run)';
+    b.style.pointerEvents = 'auto';
+  }
+}
+
+async function saveAllJumps() {
+  if (_jSaving) { console.log('이미 저장 중'); return; }
+  _jSaving = true;
+  jBtnState(true);
 
   try {
-    const vc = visibleChars();
-    for (const c of vc) {
-      try { await doSaveJump(c.id); } catch(e2) { console.warn('skip:', e2); }
+    for (const c of visibleChars()) {
+      try { await doSaveJump(c.id); } catch(e) { console.warn('doSaveJump skip:', e); }
     }
     try {
       const all = await getAllJumps();
-      visibleChars().forEach(ch=>{
-        const thEl = document.getElementById('char-tot-'+ch.id);
-        if (thEl) {
+      visibleChars().forEach(ch => {
+        const el = document.getElementById('char-tot-'+ch.id);
+        if (el) {
           const tot = all.filter(r=>r.charId===ch.id).reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0);
-          thEl.innerHTML = tot + '<span style="color:var(--dim)">개</span>';
+          el.innerHTML = tot + '<span style="color:var(--dim)">개</span>';
         }
       });
-    } catch(e){}
+    } catch(e) {}
     toast('줄넘기 기록 저장됨! ✅');
   } catch(e) {
-    toast('저장 오류: ' + (e.message||'오류'));
+    toast('저장 오류: ' + (e.message||''));
   }
 
-  // 항상 복구 — disabled 없이 data 속성만 초기화
-  const b2 = document.getElementById('jump-save-btn');
-  if (b2) { b2.dataset.saving = '0'; b2.textContent = '💾 저장하기'; b2.style.background = 'var(--run)'; }
+  _jSaving = false;
+  jBtnState(false);
 }
 
 async function doSaveJump(charId) {
@@ -2501,10 +2517,12 @@ function onWeightInput(charId, val) {
 }
 
 // 체중+목표체중 저장 버튼
+let _wSaving = false;
 async function saveWeightAndGoal() {
+  if (_wSaving) return;
+  _wSaving = true;
   const b0 = document.getElementById('weight-save-btn');
-  if (b0 && b0.dataset.saving === '1') return;
-  if (b0) { b0.dataset.saving = '1'; b0.textContent = '✓ 저장 중...'; b0.style.background = '#00b8cc'; }
+  if (b0) { b0.textContent = '✓ 저장 중...'; b0.style.background = '#00b8cc'; b0.style.pointerEvents = 'none'; }
   try {
     const vc = S.characters.filter(c=>!c.hidden);
     let saved = 0;
@@ -2551,8 +2569,9 @@ async function saveWeightAndGoal() {
   } catch(e) {
     toast('저장 오류: ' + (e.message||'알 수 없는 오류'));
   }
+  _wSaving = false;
   const b1 = document.getElementById('weight-save-btn');
-  if (b1) { b1.dataset.saving = '0'; b1.textContent = '💾 저장하기'; b1.style.background = 'var(--run)'; }
+  if (b1) { b1.textContent = '💾 저장하기'; b1.style.background = 'var(--run)'; b1.style.pointerEvents = 'auto'; }
 }
 
 // ===================== Weight Edit =====================
@@ -3007,7 +3026,8 @@ document.addEventListener('visibilitychange', () => {
     if (id === 'screen-run' && S.selCourse) {
       initRun().catch(()=>{});
     } else if (id === 'screen-jump') {
-      // 포그라운드 복귀 시 테이블 새로고침 (DB에서 직접 읽음)
+      _jSaving = false; // 복귀 시 저장 플래그 리셋
+      jBtnState(false);
       buildJumpTable().catch(()=>{});
     }
   }
