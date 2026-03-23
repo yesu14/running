@@ -529,8 +529,8 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
     </div>
     <!-- 저장 버튼 -->
     <div style="padding:12px 16px;background:var(--sur);border-top:1px solid var(--brd);flex-shrink:0">
-      <button onclick="saveAllJumps()" id="jump-save-btn"
-        style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;transition:opacity .15s;-webkit-tap-highlight-color:rgba(0,0,0,.1);touch-action:manipulation">💾 저장하기</button>
+      <button onclick="if(!this.disabled)saveAllJumps()" id="jump-save-btn"
+        style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;-webkit-tap-highlight-color:rgba(0,0,0,.1);touch-action:manipulation">💾 저장하기</button>
     </div>
   </div>
 </div>
@@ -1581,33 +1581,41 @@ function updateJSums() {
   }
 }
 // 줄넘기 저장 버튼 클릭 — 모든 캐릭터 저장
+let _jumpSaving = false;
+
+function setJumpBtn(label, saving) {
+  const b = document.getElementById('jump-save-btn');
+  if (!b) return;
+  b.textContent = label;
+  b.disabled = saving;
+  b.style.opacity = saving ? '.5' : '1';
+}
+
 async function saveAllJumps() {
-  const btn = document.getElementById('jump-save-btn');
-  const restore = () => {
-    if (btn) { btn.textContent = '💾 저장하기'; btn.disabled = false; btn.style.opacity = '1'; }
-  };
-  if (btn) { btn.textContent = '저장 중...'; btn.disabled = true; btn.style.opacity = '.6'; }
+  if (_jumpSaving) return;
+  _jumpSaving = true;
+  setJumpBtn('저장 중...', true);
   try {
     const vc = visibleChars();
     for (const c of vc) {
-      await doSaveJump(c.id);
+      try { await doSaveJump(c.id); } catch(e2) { console.error('doSaveJump error:', e2); }
     }
-    // 헤더 합계 새로고침
     try {
       const all = await getAllJumps();
       visibleChars().forEach(ch=>{
         const thEl = document.getElementById('char-tot-'+ch.id);
         if (thEl) {
           const tot = all.filter(r=>r.charId===ch.id).reduce((s,r)=>s+safeRounds(r.rounds).reduce((a,b)=>a+b,0),0);
-          thEl.innerHTML = `${tot}<span style="color:var(--dim)">개</span>`;
+          thEl.innerHTML = tot + '<span style="color:var(--dim)">개</span>';
         }
       });
     } catch(e){}
     toast('줄넘기 기록 저장됨! ✅');
   } catch(e) {
-    toast('저장 오류: ' + (e.message||'알 수 없는 오류'));
+    toast('저장 오류: ' + (e.message||'오류'));
   }
-  restore(); // try/catch 모두 끝난 뒤 무조건 복구
+  _jumpSaving = false;
+  setJumpBtn('💾 저장하기', false);
 }
 
 async function doSaveJump(charId) {
