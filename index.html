@@ -523,10 +523,14 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
         <tfoot id="jtfoot"></tfoot>
       </table>
     </div>
-    <!-- 저장 버튼 -->
+    <!-- 저장 버튼 2개: 하나는 항상 보임 -->
     <div style="padding:12px 16px;background:var(--sur);border-top:1px solid var(--brd);flex-shrink:0">
-      <button onclick="saveAllJumps()" id="jump-save-btn"
+      <!-- 저장하기 버튼 (기본) -->
+      <button id="jump-btn-save" onclick="saveAllJumps()"
         style="display:block;width:100%;background:var(--run);border:none;border-radius:14px;color:#000;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:pointer;letter-spacing:.05em;touch-action:manipulation">💾 저장하기</button>
+      <!-- 저장중 버튼 (저장 중일 때만 표시, 클릭 안됨) -->
+      <button id="jump-btn-saving"
+        style="display:none;width:100%;background:#555;border:none;border-radius:14px;color:#aaa;padding:15px;font-size:1.05rem;font-family:var(--fT);cursor:default;letter-spacing:.05em">⏳ 저장 중...</button>
     </div>
   </div>
 </div>
@@ -1555,13 +1559,17 @@ function getRoundsFromDOM(charId) {
   return rounds;
 }
 // 줄넘기 저장 — 버튼 텍스트만 바꾸고 어떤 플래그/lock도 없음
-function setJumpBtnText(txt) {
-  const b = document.getElementById('jump-save-btn');
-  if (b) b.textContent = txt;
+function showJumpSaveBtn() {
+  document.getElementById('jump-btn-save').style.display   = 'block';
+  document.getElementById('jump-btn-saving').style.display = 'none';
+}
+function showJumpSavingBtn() {
+  document.getElementById('jump-btn-save').style.display   = 'none';
+  document.getElementById('jump-btn-saving').style.display = 'block';
 }
 
 async function saveAllJumps() {
-  setJumpBtnText('저장 중...');
+  showJumpSavingBtn();
   try {
     for (const c of visibleChars()) {
       try { await doSaveJump(c.id); } catch(e) { console.warn(e); }
@@ -1581,7 +1589,7 @@ async function saveAllJumps() {
   } catch(e) {
     toast('오류: ' + (e.message||''));
   }
-  setJumpBtnText('💾 저장하기');
+  showJumpSaveBtn();
 }
 
 async function doSaveJump(charId) {
