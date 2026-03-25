@@ -112,7 +112,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);max-width:430px
 
 /* ── RUN ── */
 #screen-run{background:radial-gradient(ellipse at 50% 35%,rgba(0,229,255,.05) 0%,transparent 65%)}
-.run-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:22px 20px 36px}
+.run-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:14px 20px 28px}
 .run-pill{display:flex;align-items:center;gap:8px;background:rgba(0,229,255,.09);border:1px solid rgba(0,229,255,.25);border-radius:22px;padding:8px 16px;font-size:.95rem;color:var(--run);cursor:pointer}
 .rpill-dot{width:7px;height:7px;border-radius:50%;background:var(--run);animation:rpulse 1.5s infinite}
 @keyframes rpulse{0%,100%{opacity:1}50%{opacity:.35}}
@@ -124,14 +124,14 @@ body{background:var(--bg);color:var(--txt);font-family:var(--fB);max-width:430px
 .sl:nth-child(1){width:30px}.sl:nth-child(2){width:20px;animation-delay:-.2s}.sl:nth-child(3){width:13px;animation-delay:-.4s}
 @keyframes sfx{0%{opacity:0;transform:translateX(8px)}50%{opacity:1}100%{opacity:0;transform:translateX(-16px)}}
 .circle-area{position:relative;display:flex;align-items:center;justify-content:center}
-.tap-circle{width:240px;height:240px;border-radius:50%;border:3px solid var(--run);background:radial-gradient(circle at 40% 35%,rgba(0,229,255,.15),rgba(0,229,255,.03) 70%);box-shadow:0 0 40px rgba(0,229,255,.15),inset 0 0 40px rgba(0,229,255,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;position:relative;overflow:hidden;transition:all .12s}
+.tap-circle{width:290px;height:290px;border-radius:50%;border:4px solid var(--run);background:radial-gradient(circle at 40% 35%,rgba(0,229,255,.18),rgba(0,229,255,.04) 70%);box-shadow:0 0 60px rgba(0,229,255,.2),inset 0 0 50px rgba(0,229,255,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;position:relative;overflow:hidden;transition:all .12s}
 .tap-circle:active{transform:scale(.95)}
 .tap-circle.cd{border-color:#252545;box-shadow:none;cursor:default}
-.bignum{font-family:var(--fT);font-size:clamp(5rem,20vw,8rem);color:var(--run);line-height:1;text-shadow:0 0 50px rgba(0,229,255,.42)}
+.bignum{font-family:var(--fT);font-size:clamp(7rem,28vw,11rem);color:var(--run);line-height:1;text-shadow:0 0 60px rgba(0,229,255,.55)}
 .tap-circle.cd .bignum{color:#2e2e4a;text-shadow:none}
-.unit-lbl{font-size:1.05rem;color:var(--dim);letter-spacing:.12em;margin-top:3px}
+.unit-lbl{font-size:1.2rem;color:var(--dim);letter-spacing:.15em;margin-top:4px}
 .tap-circle.cd .unit-lbl{color:#2e2e4a}
-.cd-svg{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);pointer-events:none;display:none}
+.cd-svg{position:absolute;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);pointer-events:none;display:none}
 .tap-circle.cd .cd-svg{display:block}
 .cd-track{fill:none;stroke:#222238;stroke-width:3}
 .cd-prog{fill:none;stroke:var(--run);stroke-width:3;stroke-linecap:round;stroke-dasharray:754;stroke-dashoffset:754;transition:stroke-dashoffset 1s linear}
@@ -454,8 +454,11 @@ create policy "anon_all" on fitness_jumps for all to anon using (true) with chec
     <button class="fsbtn" onclick="toggleFS()">⛶</button>
   </div>
   <div class="run-body">
-    <div class="run-pill" onclick="showScreen('course');renderCourseList()">
-      <div class="rpill-dot"></div><span id="run-course-lbl">코스</span>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="run-pill" onclick="showScreen('course');renderCourseList()">
+        <div class="rpill-dot"></div><span id="run-course-lbl">코스</span>
+      </div>
+      <div id="run-total-lbl" style="font-size:.88rem;color:var(--dim);letter-spacing:.04em;min-height:18px"></div>
     </div>
     <div class="runner-wrap">
       <div class="slines"><div class="sl"></div><div class="sl"></div><div class="sl"></div></div>
@@ -1342,12 +1345,27 @@ async function initRun() {
     }
     const bn = document.getElementById('bignum');
     if (bn) bn.textContent = S.runRec.laps;
+    updateRunTotalLabel(S.runRec.laps);
     renderRecentStrip(all);
   } catch(e) {
     console.error('initRun:', e);
-    // DB 실패 시 현재 메모리 값 유지
     const bn = document.getElementById('bignum');
     if (bn) bn.textContent = S.runRec.laps || 0;
+    updateRunTotalLabel(S.runRec.laps || 0);
+  }
+}
+
+function updateRunTotalLabel(laps) {
+  const el = document.getElementById('run-total-lbl');
+  if (!el) return;
+  const cObj = S.courses.find(c => c.name === S.selCourseName);
+  const meter = cObj ? (cObj.meter || 0) : 0;
+  if (!meter || !laps) { el.textContent = ''; return; }
+  const total = laps * meter;
+  if (total >= 1000) {
+    el.textContent = `총 ${(total/1000).toFixed(2).replace(/\.?0+$/,'')}km`;
+  } else {
+    el.textContent = `총 ${total}m`;
   }
 }
 async function handleTap() {
@@ -1356,6 +1374,7 @@ async function handleTap() {
   const el = document.getElementById('bignum');
   el.textContent = S.runRec.laps;
   el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  updateRunTotalLabel(S.runRec.laps);
   try { await saveCurrentRun(); } catch(e) {}
   // 0.5초 쿨다운 — 원 테두리만 잠깐 흐려짐, 타이머 텍스트 없음
   const circ = document.getElementById('tap-circle');
